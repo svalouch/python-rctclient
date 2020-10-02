@@ -1,0 +1,4 @@
+{% extends "!page.html" %}
+{%- if meta.wide_page|default(false) %}
+{%- set css_files = css_files + ['_static/wide_page_table.css'] %}
+{%- endif %}
