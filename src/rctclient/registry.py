@@ -301,7 +301,7 @@ REGISTRY = Registry([
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x34A164E7, index=126, request_data_type=DataType.STRING,                     name='battery.cells_stat[0]'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x34E33726, index=127, request_data_type=DataType.UINT8,                      name='battery.cells_stat[2].u_max.index'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x3503B92D, index=130, request_data_type=DataType.UINT32,                     name='battery.cells_stat[3].u_max.time'),
-    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x381B8BF9, index=138, request_data_type=DataType.FLOAT,                      name='battery.soh',                                  description='SOH (State of Health)'),
+    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x381B8BF9, index=138, request_data_type=DataType.FLOAT,   unit='%',          name='battery.soh',                                  description='SOH (State of Health)'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x3A7D5F53, index=145, request_data_type=DataType.FLOAT,                      name='battery.cells_stat[1].u_max.value'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x3BA1B77B, index=153, request_data_type=DataType.FLOAT,                      name='battery.cells_stat[3].t_min.value'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x3F98F58A, index=163, request_data_type=DataType.UINT8,                      name='battery.cells_stat[5].t_max.index'),
@@ -356,7 +356,7 @@ REGISTRY = Registry([
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x889DC27F, index=367, request_data_type=DataType.FLOAT,                      name='battery.cells_stat[0].u_min.value'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x88BBF8CB, index=368, request_data_type=DataType.FLOAT,                      name='battery.cells_stat[5].t_min.value'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x89B25F4B, index=372, request_data_type=DataType.UINT16,                     name='battery.stack_cycles[3]'),
-    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x8B9FF008, index=375, request_data_type=DataType.FLOAT,                      name='battery.soc_target',                           description='Target SOC'),
+    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x8B9FF008, index=375, request_data_type=DataType.FLOAT,  unit='%',           name='battery.soc_target',                           description='Target SOC'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x8BB08839, index=376, request_data_type=DataType.UINT32,                     name='battery.cells_stat[6].t_min.time'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x8DFFDD33, index=380, request_data_type=DataType.UINT32,                     name='battery.cells_stat[3].u_min.time'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x8EC23427, index=383, request_data_type=DataType.UINT32,                     name='battery.cells_stat[4].u_max.time'),
@@ -366,7 +366,7 @@ REGISTRY = Registry([
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x90832471, index=393, request_data_type=DataType.UINT32,                     name='battery.cells_stat[1].u_max.time'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x91C325D9, index=399, request_data_type=DataType.UINT32,                     name='battery.cells_stat[0].t_min.time'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x91FB68CD, index=400, request_data_type=DataType.FLOAT,                      name='battery.cells_stat[6].t_max.value'),
-    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x959930BF, index=413, request_data_type=DataType.FLOAT,                      name='battery.soc',                                  description='SOC (State of charge)'),
+    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x959930BF, index=413, request_data_type=DataType.FLOAT,  unit='%',           name='battery.soc',                                  description='SOC (State of charge)'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x99396810, index=422, request_data_type=DataType.STRING,                     name='battery.module_sn[1]',                         description='Module 1 Serial Number'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x993C06F6, index=423, request_data_type=DataType.STRING,                     name='battery.cells_resist[3]'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x9D785E8C, index=429, request_data_type=DataType.UINT32,                     name='battery.bms_software_version',                 description='Software version BMS Master'),
@@ -877,5 +877,6 @@ REGISTRY = Registry([
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0xF2BE0C9C, index=638, request_data_type=DataType.FLOAT,  unit='W',           name='p_buf_available',                              description='Available buffer power'),
 
     # The following have been found by observing the official app
-    ObjectInfo(group=ObjectGroup.DC_CONV,         object_id=0x4AE96C12, index=900, request_data_type=DataType.FLOAT,  unit='V',           name='dc_conv.dc_conv_struct[1].mpp.mpp_step',       description='MPP search step on inbut B'),
+    ObjectInfo(group=ObjectGroup.DC_CONV,         object_id=0x4AE96C12, index=900, request_data_type=DataType.FLOAT,  unit='V',           name='dc_conv.dc_conv_struct[1].mpp.mpp_step',       description='MPP search step on input B'),
+    ObjectInfo(group=ObjectGroup.DC_CONV,         object_id=0xBA8B8515, index=901, request_data_type=DataType.FLOAT,  unit='V',           name='dc_conv.dc_conv_struct[0].mpp.mpp_step',       description='MPP search step on input A'),
 ])
