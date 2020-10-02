@@ -1,0 +1,5 @@
+click
+Sphinx>=2.0
+sphinx-autodoc-typehints
+sphinx-click
+sphinx-rtd-theme
