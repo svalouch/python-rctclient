@@ -68,6 +68,6 @@ html_static_path = ['_static']
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
-# -- Options for autodoc extension ------------------------------------------
+# -- Options for autodoc extension -------------------------------------------
 
 # autodoc_mock_imports = ['rctclient.settings']

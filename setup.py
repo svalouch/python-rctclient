@@ -7,7 +7,7 @@ setup(
     author='Peter Oberhofer',
     description='Implementation of the RCT Power communication protocol',
     project_urls={
-        'Documentation': 'https://rctclient.readthedocs.org/',
+        'Documentation': 'https://rctclient.readthedocs.io/',
         'Source': 'https://github.com/svalouch/rctclient/',
         'Tracker': 'https://github.com/svalouch/rctclient/issues',
     },
