@@ -879,4 +879,5 @@ REGISTRY = Registry([
     # The following have been found by observing the official app
     ObjectInfo(group=ObjectGroup.DC_CONV,         object_id=0x4AE96C12, index=900, request_data_type=DataType.FLOAT,  unit='V',           name='dc_conv.dc_conv_struct[1].mpp.mpp_step',       description='MPP search step on input B'),
     ObjectInfo(group=ObjectGroup.DC_CONV,         object_id=0xBA8B8515, index=901, request_data_type=DataType.FLOAT,  unit='V',           name='dc_conv.dc_conv_struct[0].mpp.mpp_step',       description='MPP search step on input A'),
+    ObjectInfo(group=ObjectGroup.DISPLAY_STRUCT,  object_id=0x29BDA75F, index=902, request_data_type=DataType.UINT8,                      name='display_struct.brightness', description='Display brightness, [0..255]'),
 ])
