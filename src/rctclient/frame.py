@@ -136,7 +136,7 @@ class ReceiveFrame:
     # data buffer
     _buffer: bytearray
     # command
-    _command: int
+    _command: Command
 
     # ID, once decoded
     _id: int
@@ -154,7 +154,7 @@ class ReceiveFrame:
         self._crc16 = 0
         self._frame_length = 0
         self._frame_type = frame_type
-        self._command = 0
+        self._command = Command._NONE
         self._buffer = bytearray()
         self._dbg = ''
 
@@ -164,7 +164,7 @@ class ReceiveFrame:
         self._address = 0
 
     def __repr__(self) -> str:
-        return f'<ReceiveFrame(cmd={self.command:x}, id={self.id:x}, address={self.address:x}, data={self.data.hex()})>'
+        return f'<ReceiveFrame(cmd={self.command.name}, id={self.id:x}, address={self.address:x}, data={self.data.hex()})>'
 
     @property
     def debug(self) -> str:
@@ -204,7 +204,7 @@ class ReceiveFrame:
         return self._address
 
     @property
-    def command(self) -> int:
+    def command(self) -> Command:
         '''
         Returns the command.
         '''
@@ -292,7 +292,8 @@ class ReceiveFrame:
         if self._crc16 == calc_crc16:
             self._crc_ok = True
 
-            self._command = struct.unpack('>B', bytes([self._buffer[1]]))[0]
+            command = struct.unpack('>B', bytes([self._buffer[1]]))[0]
+            self._command = Command(command)
             if self._command == Command.LONG_RESPONSE or self._command == Command.LONG_WRITE:
                 data_length = struct.unpack('>H', self._buffer[2:4])[0]  # 2 byte length MSBF
                 idx = 4

@@ -25,6 +25,9 @@ class Command(IntEnum):
     #: Extension
     EXTENSION = 0x3c
 
+    #: Sentinel, do not use
+    _NONE = 0xff
+
 
 class ObjectGroup(IntEnum):
     '''
