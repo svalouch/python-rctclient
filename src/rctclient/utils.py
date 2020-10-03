@@ -119,7 +119,11 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
     elif data_type == DataType.FLOAT:
         return struct.unpack(">f", data)[0]
     elif data_type == DataType.STRING:
-        return data.decode('utf-8')
+        pos = data.find(0x00)
+        if pos == -1:
+            return data.decode('ascii')
+        else:
+            return data[0:pos].decode('ascii')
     elif data_type == DataType.TIMESERIES:
         ts = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
         tsval: Dict[datetime, int] = dict()
@@ -152,4 +156,4 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
                                                timestamp_end=timestamp_end)
         return ts, tabval
     else:
-        raise KeyError('Undefined or unknown type')
+        raise KeyError(f'Undefined or unknown type {data_type}')
