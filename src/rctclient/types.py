@@ -68,6 +68,7 @@ class ObjectGroup(IntEnum):
     CS_MAP = 31
     LINE_MON = 32
     OTHERS = 33
+    BATTERY_PLACEHOLDER = 34
 
 
 class FrameType(IntEnum):
