@@ -7,6 +7,8 @@ simple simulator is included.
 
 This project is not in any way affiliated with or supported by RCT Power GmbH.
 
+Below is a quickstart guide, the project documentation is on [Read the Docs](https://rctclient.readthedocs.io/).
+
 Installing
 ----------
 Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
@@ -97,4 +99,7 @@ $ pip install -e .[docs,cli]
 $ cd docs
 $ make clean html
 ```
-The documentation is built and put into the `docs/_build/html` directory.
+The documentation is put into the `docs/_build/html` directory, simply point your browser to the `index.html` file.
+
+The documentation is also auto-generated after every commit and can be found at
+[https://rctclient.readthedocs.io/](https://rctclient.readthedocs.io/).
