@@ -58,8 +58,8 @@ def main():
                     if frame.command == Command.EXTENSION:
                         print('Frame is an extension frame and we don\'t know how to parse it')
                     else:
-                        print(f'Frame {frame.id} CRC mismatch, got {exc.received_crc} but calculated '
-                              f'{exc.calculated_crc}. Buffer: {frame._buffer.hex()}')
+                        print(f'Frame {frame.id} CRC mismatch, got 0x{exc.received_crc:X} but calculated '
+                              f'0x{exc.calculated_crc:X}. Buffer: {frame._buffer.hex()}')
                     print(pl[0:2].hex())
                     if pl[0:2] == bytearray.fromhex('002b'):
                         i = 2
