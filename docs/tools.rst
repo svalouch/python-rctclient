@@ -173,7 +173,7 @@ To work with the data, it needs to be converted to a byte stream first. The easi
    bytearray(b'G\x00\x00\x00')
 
 With the byte stream in the variable ``b``, let's try to convert it into something usable. For this, `struct.unpack
-<https://docs.python.org/3/library/struct.html#struct.unpack>` is used with a set of format strings. First, try a 32
+<https://docs.python.org/3/library/struct.html#struct.unpack>`_ is used with a set of format strings. First, try a 32
 bit unsigned integer as is commonly used with `unix timestamps`:
 
 .. code-block:: pycon
