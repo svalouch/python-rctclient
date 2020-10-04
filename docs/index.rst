@@ -23,6 +23,7 @@ file for further information.
    registry
    simulator
    api
+   tools
 
 .. toctree::
    :maxdepth: 1
