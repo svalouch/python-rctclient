@@ -3,6 +3,8 @@
 # Copyright 2020, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
+# pylint: disable=line-too-long
+
 '''
 Dataset defining the values and names to conveniently use the system.
 '''
