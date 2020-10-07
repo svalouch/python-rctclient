@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup  # type: ignore
 
+with open('README.md', 'r') as fh:
+    long_description = fh.read()
+
 setup(
     name='rctclient',
     version='0.0.1',
     author='Peter Oberhofer',
     description='Implementation of the RCT Power communication protocol',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     project_urls={
         'Documentation': 'https://rctclient.readthedocs.io/',
-        'Source': 'https://github.com/svalouch/rctclient/',
-        'Tracker': 'https://github.com/svalouch/rctclient/issues',
+        'Source': 'https://github.com/svalouch/python-rctclient/',
+        'Tracker': 'https://github.com/svalouch/python-rctclient/issues',
     },
     packages=['rctclient'],
     package_data={'rctclient': ['py.typed']},
@@ -17,6 +22,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     platforms='any',
+    url='https://github.com/svalouch/python-rctclient/',
     python_requires='>=3.6',
 
     # install_requires=[
@@ -26,10 +32,11 @@ setup(
         'cli': [
             'click',
         ],
-        'dev': [
+        'tests': [
             'flake8',
             'mypy',
             'pytest',
+            'pytest-cov',
         ],
         'docs': [
             'click',
