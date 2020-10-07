@@ -7,7 +7,8 @@ with open('README.md', 'r') as fh:
 setup(
     name='rctclient',
     version='0.0.1',
-    author='Peter Oberhofer',
+    author='Stefan Valouch',
+    author_email='svalouch@valouch.com',
     description='Implementation of the RCT Power communication protocol',
     long_description=long_description,
     long_description_content_type='text/markdown',
