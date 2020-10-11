@@ -9,6 +9,7 @@ Import a days worth of "minute" histogram data and push it to an influxdb.
 
 import select
 import socket
+import struct
 import sys
 from datetime import datetime, timedelta
 from typing import Dict
@@ -139,7 +140,7 @@ def histogram2influxdb(host: str, port: int, device_name: str, influx_host: str,
 
             try:
                 _, table = decode_value(DataType.TIMESERIES, rframe.data)
-            except AssertionError:
+            except (AssertionError, struct.error):
                 # the device sent invalid data with the correct CRC
                 click.echo('\tInvalid data received, retrying')
                 continue
