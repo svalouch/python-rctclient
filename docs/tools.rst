@@ -9,6 +9,89 @@ Extra scripts and tools can be found in the ``tools`` subfolder of the repositor
 dependencies or special use-cases and are thus not integrated into the main :ref:`cli` tool. The tools usually lack a
 sophisticated user interface and error handling is kept at a minimum.
 
+histogram2influxdb.py
+*********************
+This tool requires the Python modules `influxdb <https://pypi.org/project/influxdb/>`_ and `PyYAML
+<https://pypi.org/project/PyYAML/>`_ as well as `click`. It reads a days worth of histogram data from the device and
+dumps it into an InfluxDB.
+
+The script assumes that the measurement interval is `5 minutes` (meaning that ``logger.log_rate`` equals ``300``).
+Various parameters can (and some must) be set, simply call the script with ``--help`` to list them. The most important
+one is the argument at the end, called ``DAY_BEFORE_TODAY``, which is a positive integer to denote the day "back from
+today" to query. This might sound odd at first, but allows for a cronjob that runs sometime past midnight, querying the
+day before by having ``1`` as argument, so it doesn't require date calculations in the cronjob while still allowing it
+to fetch much older data without having a different method to pass the desired date.
+
+.. note::
+
+   The time zone is assumed to be `Europe/Berlin`, which can be overwritten using the ``--time-zone`` parameter.
+
+Influx
+======
+The script assumes the database in the InfluxDB instance to exist. It will write to a table called ``history``. The
+``--device-name`` is used as value for the ``rct`` tag, and the fields are all float, bearing the middle portion of the
+``logger.minutes_<name>_log_ts`` as name. Thus, ``logger.minutes_ea_log_ts`` can be found in the ``ea`` field.
+writes to a table ``history``, with the `tag` ``rct`` set to the ``--device-name`` parameter.
+
+Dumping
+=======
+When called with ``--dump``, a YAML file will be dropped to the current working directory. The name is comprised of the
+``--device-name`` and the date of the day that was dumped, for example ``data_rct1_2020-10-05T00:00:00.yml``. The
+structure is simple:
+
+.. code-block:: yaml
+
+   2020-10-05 00:00:00:
+     ea: 5.605193857299268e-45
+     eac: 267.4178466796875
+     # ... rest of the fields
+   2020-10-05 00:05:00:
+     ea: 5.605193857299268e-45
+     eac: 376.65167236328125
+     # .. rest of the fields
+
+Note that it will always write to the InfluxDB.
+
+Handling of incomplete data
+===========================
+The script will try to get a complete dataset, but due to the devices returning a random amount of data (it takes an
+average of seven queries to receive one complete day for a single metric), it can only jump over holes not longer than
+a few hours and will request the same portion over and over again.
+
+Holes in the devices data can occur:
+
+* If the battery ran empty (``power_mng.soc`` reached ``power_mng.soc_min`` or ``power_mng.soc_min_island``) during the
+  night (during the day, the device powers itself from the strings).
+* If the time of the device was changed forward by more than a few hours.
+* If the device was switched off for some hours.
+
+If the device sends invalid data (incomplete dataset with valid CRC or data with invalid CRC), the query is retried
+until valid data is received.
+
+Example
+=======
+Invoking the script for "yesterday" and dumping a yaml file to disk can be achieved by calling it like so:
+
+.. code-block:: shell-session
+
+   $ ./histogram2influxdb.py --host 192.168.0.1 --dump 1
+   Requesting ubat
+           timestamp: 2020-10-05 23:59:59
+           timestamp: 2020-10-05 19:00:00
+           timestamp: 2020-10-05 15:00:00
+           timestamp: 2020-10-05 10:05:00
+           timestamp: 2020-10-05 05:10:00
+           timestamp: 2020-10-05 00:15:00
+           Reached limit
+   Requesting ul3
+           timestamp: 2020-10-05 23:59:59
+           timestamp: 2020-10-05 23:10:00
+           timestamp: 2020-10-05 18:15:00
+           timestamp: 2020-10-05 13:20:00
+           [...]
+
+Once all the metrics have been received, the data is dumped and written to the InfluxDB.
+
 read_pcap.py
 ************
 This tool requires `scapy <https://scapy.net>`_ to be installed. It reads a `pcap
