@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup  # type: ignore
 
-with open('README.md', 'r') as fh:
+with open('README.md', 'rt') as fh:
     long_description = fh.read()
 
 setup(
@@ -34,10 +34,11 @@ setup(
             'click',
         ],
         'tests': [
-            'flake8',
             'mypy',
+            'pylint',
             'pytest',
             'pytest-cov',
+            'pytest-pylint',
         ],
         'docs': [
             'click',
