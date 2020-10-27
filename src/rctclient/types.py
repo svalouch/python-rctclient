@@ -3,6 +3,8 @@
 # Copyright 2020, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
+# pylint: disable=too-many-arguments,too-few-public-methods
+
 from datetime import datetime
 from enum import IntEnum
 from typing import Optional
@@ -72,6 +74,9 @@ class ObjectGroup(IntEnum):
 
 
 class FrameType(IntEnum):
+    '''
+    Enumeration of supported frame types.
+    '''
     #: Standard frame with an ID
     STANDARD = 4
     #: Plant frame with ID and address

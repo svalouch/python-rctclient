@@ -10,6 +10,7 @@ from typing import Dict, Tuple, Union
 from .types import DataType, EventEntry
 
 
+# pylint: disable=invalid-name
 def CRC16(data: Union[bytes, bytearray]) -> int:
     '''
     Calculates the CRC16 checksum of data. Note that this automatically skips the first byte (start token) if the
@@ -25,7 +26,7 @@ def CRC16(data: Union[bytes, bytearray]) -> int:
 
     for byte in buffer:
         crcsum ^= byte << 8
-        for bit in range(8):
+        for _bit in range(8):
             crcsum <<= 1
             if crcsum & 0x7FFF0000:
                 # ~~ overflow in bit 16
@@ -33,6 +34,7 @@ def CRC16(data: Union[bytes, bytearray]) -> int:
     return crcsum
 
 
+# pylint: disable=too-many-branches,too-many-return-statements
 def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]) -> bytes:
     '''
     Encodes a value suitable for transmitting as payload to the device. The actual encoding depends on the `data_type`.
@@ -49,37 +51,37 @@ def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]
         else:
             value = False
         return struct.pack('>B', value)
-    elif data_type == DataType.UINT8:
+    if data_type == DataType.UINT8:
         value = struct.unpack('<B', struct.pack('<b', value))[0]
         return struct.pack(">B", value)
-    elif data_type == DataType.INT8:
+    if data_type == DataType.INT8:
         return struct.pack(">b", value)
-    elif data_type == DataType.UINT16:
+    if data_type == DataType.UINT16:
         value = struct.unpack('<H', struct.pack('<h', value))[0]
         return struct.pack(">H", value)
-    elif data_type == DataType.INT16:
+    if data_type == DataType.INT16:
         return struct.pack(">h", value)
-    elif data_type == DataType.UINT32:
+    if data_type == DataType.UINT32:
         value = struct.unpack('<I', struct.pack('<i', value))[0]
         return struct.pack(">I", value)
-    elif data_type == DataType.INT32:
+    if data_type == DataType.INT32:
         return struct.pack(">i", value)
-    elif data_type == DataType.ENUM:
+    if data_type == DataType.ENUM:
         value = struct.unpack('<H', struct.pack('<h', value))[0]
         return struct.pack(">H", value)
-    elif data_type == DataType.FLOAT:
+    if data_type == DataType.FLOAT:
         return struct.pack(">f", value)
-    elif data_type == DataType.STRING:
+    if data_type == DataType.STRING:
         if isinstance(value, str):
             return value.encode('utf-8')
-        elif isinstance(value, bytes):
+        if isinstance(value, bytes):
             return value
         raise ValueError(f'Invalid value of type {type(value)} for string type encoding')
         # return struct.pack("s", value)
-    else:
-        raise KeyError('Undefinded or unknown type')
+    raise KeyError('Undefinded or unknown type')
 
 
+# pylint: disable=too-many-branches,too-many-return-statements
 def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, int, str,
                                                             Tuple[datetime, Dict[datetime, int]],
                                                             Tuple[datetime, Dict[datetime, EventEntry]]]:
@@ -101,57 +103,70 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         if value != 0:
             return True
         return False
-    elif data_type == DataType.UINT8:
+    if data_type == DataType.UINT8:
         return struct.unpack(">B", data)[0]
-    elif data_type == DataType.INT8:
+    if data_type == DataType.INT8:
         return struct.unpack(">b", data)[0]
-    elif data_type == DataType.UINT16:
+    if data_type == DataType.UINT16:
         return struct.unpack(">H", data)[0]
-    elif data_type == DataType.INT16:
+    if data_type == DataType.INT16:
         return struct.unpack(">h", data)[0]
-    elif data_type == DataType.UINT32:
+    if data_type == DataType.UINT32:
         return struct.unpack(">I", data)[0]
-    elif data_type == DataType.INT32:
+    if data_type == DataType.INT32:
         return struct.unpack(">i", data)[0]
-    elif data_type == DataType.ENUM:
+    if data_type == DataType.ENUM:
         return struct.unpack(">H", data)[0]
-    elif data_type == DataType.FLOAT:
+    if data_type == DataType.FLOAT:
         return struct.unpack(">f", data)[0]
-    elif data_type == DataType.STRING:
+    if data_type == DataType.STRING:
         pos = data.find(0x00)
         if pos == -1:
             return data.decode('ascii')
         return data[0:pos].decode('ascii')
-    elif data_type == DataType.TIMESERIES:
-        ts = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
-        tsval: Dict[datetime, int] = dict()
-        assert len(data) % 4 == 0, 'Data should be divisible by 4'
-        assert int(len(data) / 4 % 2) == 1, 'Data should be an even number of 4-byte pairs plus the starting timestamp'
-        for pair in range(0, int(len(data) / 4 - 1), 2):
-            pair_ts = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0])
-            pair_val = struct.unpack('>f', data[4 + pair * 4 + 4:4 + pair * 4 + 4 + 4])[0]
-            tsval[pair_ts] = pair_val
-        return ts, tsval
-    elif data_type == DataType.EVENT_TABLE:
-        ts = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
-        tabval: Dict[datetime, EventEntry] = dict()
-        assert len(data) % 4 == 0
-        assert (len(data) - 4) % 20 == 0
-        for pair in range(0, int(len(data) / 4 - 1), 5):
-            entry_type = bytes([struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]]).decode('ascii')
-            timestamp = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4 + 4:4 + pair * 4 + 8])[0])
-            if entry_type in ['s', 'w']:
-                object_id = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
-                value_old = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
-                value_new = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
-                tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
-                                               value_old=value_old, value_new=value_new)
-            else:
-                timestamp_end = datetime.fromtimestamp(
-                    struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0])
-                object_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
-                tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
-                                               timestamp_end=timestamp_end)
-        return ts, tabval
-    else:
-        raise KeyError(f'Undefined or unknown type {data_type}')
+    if data_type == DataType.TIMESERIES:
+        return _decode_timeseries(data)
+    if data_type == DataType.EVENT_TABLE:
+        return _decode_event_table(data)
+    raise KeyError(f'Undefined or unknown type {data_type}')
+
+
+def _decode_timeseries(data: bytes) -> Tuple[datetime, Dict[datetime, int]]:
+    '''
+    Helper function to decode the timeseries type.
+    '''
+    timestamp = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
+    tsval: Dict[datetime, int] = dict()
+    assert len(data) % 4 == 0, 'Data should be divisible by 4'
+    assert int(len(data) / 4 % 2) == 1, 'Data should be an even number of 4-byte pairs plus the starting timestamp'
+    for pair in range(0, int(len(data) / 4 - 1), 2):
+        pair_ts = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0])
+        pair_val = struct.unpack('>f', data[4 + pair * 4 + 4:4 + pair * 4 + 4 + 4])[0]
+        tsval[pair_ts] = pair_val
+    return timestamp, tsval
+
+
+def _decode_event_table(data: bytes) -> Tuple[datetime, Dict[datetime, EventEntry]]:
+    '''
+    Helper function to decode the event table type.
+    '''
+    timestamp = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
+    tabval: Dict[datetime, EventEntry] = dict()
+    assert len(data) % 4 == 0
+    assert (len(data) - 4) % 20 == 0
+    for pair in range(0, int(len(data) / 4 - 1), 5):
+        entry_type = bytes([struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]]).decode('ascii')
+        timestamp = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4 + 4:4 + pair * 4 + 8])[0])
+        if entry_type in ['s', 'w']:
+            object_id = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
+            value_old = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
+            value_new = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
+            tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
+                                           value_old=value_old, value_new=value_new)
+        else:
+            timestamp_end = datetime.fromtimestamp(
+                struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0])
+            object_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
+            tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
+                                           timestamp_end=timestamp_end)
+    return timestamp, tabval
