@@ -51,7 +51,7 @@ def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]
         else:
             value = False
         return struct.pack('>B', value)
-    if data_type == DataType.UINT8:
+    if data_type in (DataType.UINT8, DataType.ENUM):
         value = struct.unpack('<B', struct.pack('<b', value))[0]
         return struct.pack(">B", value)
     if data_type == DataType.INT8:
@@ -66,9 +66,6 @@ def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]
         return struct.pack(">I", value)
     if data_type == DataType.INT32:
         return struct.pack(">i", value)
-    if data_type == DataType.ENUM:
-        value = struct.unpack('<H', struct.pack('<h', value))[0]
-        return struct.pack(">H", value)
     if data_type == DataType.FLOAT:
         return struct.pack(">f", value)
     if data_type == DataType.STRING:
@@ -103,7 +100,7 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         if value != 0:
             return True
         return False
-    if data_type == DataType.UINT8:
+    if data_type in (DataType.UINT8, DataType.ENUM):
         return struct.unpack(">B", data)[0]
     if data_type == DataType.INT8:
         return struct.unpack(">b", data)[0]
@@ -115,8 +112,6 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         return struct.unpack(">I", data)[0]
     if data_type == DataType.INT32:
         return struct.unpack(">i", data)[0]
-    if data_type == DataType.ENUM:
-        return struct.unpack(">H", data)[0]
     if data_type == DataType.FLOAT:
         return struct.unpack(">f", data)[0]
     if data_type == DataType.STRING:
