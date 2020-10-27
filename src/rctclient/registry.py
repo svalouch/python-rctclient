@@ -11,6 +11,7 @@ Dataset defining the values and names to conveniently use the system.
 
 from typing import Any, Dict, List, Optional
 
+from .exceptions import RctClientException
 from .types import ObjectGroup, DataType
 
 
@@ -45,6 +46,7 @@ class ObjectInfo:
     :param description: Optional description.
     :param unit: Optional unit symbol.
     :param sim_data: Data used by the simulator.
+    :param enum_values: Mapping of integer ID to string value.
     '''
     #: The group the ID belongs to
     group: ObjectGroup
@@ -62,20 +64,25 @@ class ObjectInfo:
     description: Optional[str]
     #: Optional unit.
     unit: Optional[str]
+    #: Optional enum mapping
+    enum_map: Optional[Dict[int, str]]
 
     sim_data: Any
 
     def __init__(self, group: ObjectGroup, object_id: int, index: int, name: str, request_data_type: DataType,
                  description: Optional[str] = None, unit: Optional[str] = None, sim_data: Any = None,
-                 response_data_type: Optional[DataType] = None) -> None:
+                 response_data_type: Optional[DataType] = None, enum_map: Optional[Dict[int, str]] = None) -> None:
         self.group = group
         self.object_id = object_id
         self.index = index
         self.name = name
         self.request_data_type = request_data_type
+        self.enum_map = enum_map
         if response_data_type is None:
             self.response_data_type = request_data_type
         else:
+            if request_data_type == DataType.ENUM and response_data_type != DataType.ENUM:
+                raise RctClientException('ENUMs do not support non-ENUM response types')
             self.response_data_type = response_data_type
         self.description = description
         self.unit = unit
@@ -95,6 +102,22 @@ class ObjectInfo:
 
     def __lt__(self, other: 'ObjectInfo') -> bool:
         return self.object_id < other.object_id
+
+    def enum_str(self, value: int) -> str:
+        '''
+        For DataType.ENUM: converts the integer value to the string. If there is no mapping or the type is not
+        DataType.ENUM, raises an exception.
+
+        :param value: The value to convert.
+        :returns: The string key associated with the value.
+        :raises RctClientException: If the type is not ENUM or no mapping is defined.
+        :raises KeyError: If the value is not in the range of the enum mapping.
+        '''
+        if self.request_data_type == DataType.ENUM:
+            if self.enum_map is not None:
+                return self.enum_map[value]
+            raise RctClientException('No ENUM mapping defined for this type')
+        raise RctClientException('Not an ENUM type')
 
 
 class Registry:
@@ -874,7 +897,8 @@ REGISTRY = Registry([
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0x7940547B, index=329, request_data_type=DataType.BOOL,                       name='inv_struct.force_dh'),
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0x7946D888, index=330, request_data_type=DataType.FLOAT,  unit='s',           name='i_dc_slow_time',                               description='Time for slow DC-component of Iac'),
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0x87E4387A, index=363, request_data_type=DataType.FLOAT,  unit='A',           name='current_sensor_max',                           description='Power Sensor current range'),
-    ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0x8FC89B10, index=388, request_data_type=DataType.ENUM,                       name='com_service',                                  description='COM service'),
+    ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0x8FC89B10, index=388, request_data_type=DataType.ENUM,                       name='com_service',                                  description='COM service',
+               enum_map={0: 'off', 1: 'OnlineOsci protocol', 2: 'COM protocol', 3: 'Start bootloader', 4: 'Reset DSP', 5: 'Flash parameter', 6: 'Erase parameters', 7: 'Set SSID', 8: 'Restart WiFi', 9: 'Write WiFi parameters', 10: 'Read WiFi parameters'}),
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0x929394B7, index=404, request_data_type=DataType.STRING,                     name='svnversion_last_known'),
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0xA12E9B43, index=437, request_data_type=DataType.INT16,                      name='phase_marker',                                 description='Next phase after phase 1'),
     ObjectInfo(group=ObjectGroup.OTHERS,          object_id=0xA76AE9CA, index=452, request_data_type=DataType.UINT16,                     name='relays.bits_real'),
