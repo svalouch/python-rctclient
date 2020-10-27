@@ -10,9 +10,10 @@ import struct
 import sys
 from scapy.utils import rdpcap  # type: ignore
 from scapy.layers.inet import TCP  # type: ignore
+from rctclient.exceptions import RctClientException
 from rctclient.frame import ReceiveFrame, FrameCRCMismatch
 from rctclient.registry import REGISTRY as R
-from rctclient.types import Command
+from rctclient.types import Command, DataType
 from rctclient.utils import decode_value
 
 
@@ -95,6 +96,13 @@ def main():
                                 print(f'Received reply: {rid.index:4} {rid.name:40} type: {dtype.name:17} value: '
                                       'UNKNOWN')
                             else:
+                                if dtype == DataType.ENUM:
+                                    try:
+                                        value = rid.enum_str(value)
+                                    except RctClientException as exc:
+                                        print(f'ENUM mapping failed: {str(exc)}')
+                                    except KeyError:
+                                        print('ENUM value out of bounds')
                                 print(f'Received reply: {rid.index:4} {rid.name:40} type: {dtype.name:17} value: '
                                       f'{value}')
                     frame = None
