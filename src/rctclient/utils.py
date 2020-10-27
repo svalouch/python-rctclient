@@ -100,8 +100,7 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         value = struct.unpack(">B", data)[0]
         if value != 0:
             return True
-        else:
-            return False
+        return False
     elif data_type == DataType.UINT8:
         return struct.unpack(">B", data)[0]
     elif data_type == DataType.INT8:
@@ -122,8 +121,7 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         pos = data.find(0x00)
         if pos == -1:
             return data.decode('ascii')
-        else:
-            return data[0:pos].decode('ascii')
+        return data[0:pos].decode('ascii')
     elif data_type == DataType.TIMESERIES:
         ts = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
         tsval: Dict[datetime, int] = dict()
@@ -143,16 +141,16 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
             entry_type = bytes([struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]]).decode('ascii')
             timestamp = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4 + 4:4 + pair * 4 + 8])[0])
             if entry_type in ['s', 'w']:
-                message_id = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
+                object_id = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
                 value_old = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
                 value_new = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
-                tabval[timestamp] = EventEntry(timestamp=timestamp, message_id=message_id, entry_type=entry_type,
+                tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
                                                value_old=value_old, value_new=value_new)
             else:
                 timestamp_end = datetime.fromtimestamp(
                     struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0])
-                message_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
-                tabval[timestamp] = EventEntry(timestamp=timestamp, message_id=message_id, entry_type=entry_type,
+                object_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
+                tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
                                                timestamp_end=timestamp_end)
         return ts, tabval
     else:
