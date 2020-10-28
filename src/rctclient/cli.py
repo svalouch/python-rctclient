@@ -1,4 +1,8 @@
 
+'''
+Command line interface implementation.
+'''
+
 # Copyright 2020, Peter Oberhofer (pob90)
 # Copyright 2020, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
@@ -19,7 +23,7 @@ from .exceptions import FrameCRCMismatch
 from .frame import ReceiveFrame, SendFrame
 from .registry import REGISTRY as R
 from .simulator import run_simulator
-from .types import Command
+from .types import Command, DataType
 from .utils import decode_value
 
 log = logging.getLogger('rctclient.cli')
@@ -44,12 +48,12 @@ def cli(ctx, debug: bool) -> None:
     log.info('rctclient CLI starting')
 
 
-def autocomplete_registry_name(ctx, args: List, incomplete: str) -> List[str]:
+def autocomplete_registry_name(_ctx, _args: List, incomplete: str) -> List[str]:
     '''
     Provides autocompletion for the object IDs name parameter.
 
-    :param ctx: Click context (ignored).
-    :param args: Arguments (ignored).
+    :param _ctx: Click context (ignored).
+    :param _args: Arguments (ignored).
     :param incomplete: Incomplete (or empty) string from the user.
     :return: A list of names that either start with `incomplete` or all if `incomplete` is empty.
     '''
@@ -69,8 +73,8 @@ def receive_frame(sock: socket.socket, timeout: int = 2) -> ReceiveFrame:
     while True:
         try:
             ready_read, _, _ = select.select([sock], [], [], timeout)
-        except select.error as e:
-            log.error(f'Error during receive: select returned an error: {str(e)}')
+        except select.error as exc:
+            log.error(f'Error during receive: select returned an error: {str(exc)}')
             raise
 
         if ready_read:
@@ -140,9 +144,13 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     except KeyError:
         log.error('Could not find requested id or name')
         sys.exit(1)
-    except ValueError as e:
-        log.debug(f'Invalid --id parameter: {str(e)}')
+    except ValueError as exc:
+        log.debug(f'Invalid --id parameter: {str(exc)}')
         log.error('Invalid --id parameter, can\'t parse', err=True)
+        sys.exit(1)
+
+    if oinfo.response_data_type in (DataType.EVENT_TABLE, DataType.TIMESERIES):
+        log.error('Timeseries and event table are not supported by this tool.')
         sys.exit(1)
 
     log.debug('Connecting to host')
@@ -150,16 +158,17 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((host, port))
         log.debug(f'Connected to {host}:{port}')
-    except socket.error as e:
-        log.error(f'Could not connect to host: {str(e)}')
+    except socket.error as exc:
+        log.error(f'Could not connect to host: {str(exc)}')
         sys.exit(1)
 
     sframe = SendFrame(command=Command.READ, id=oinfo.object_id)
     sock.send(sframe.data)
     try:
         rframe = receive_frame(sock)
-    except FrameCRCMismatch as e:
-        log.error(f'Received frame CRC mismatch: received 0x{e.received_crc:X} but calculated 0x{e.calculated_crc:X}')
+    except FrameCRCMismatch as exc:
+        log.error(f'Received frame CRC mismatch: received 0x{exc.received_crc:X} but calculated '
+                  f'0x{exc.calculated_crc:X}')
         sys.exit(1)
     log.debug(f'Got frame: {rframe}')
     if rframe.id != oinfo.object_id:
@@ -178,8 +187,8 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
 
     try:
         sock.close()
-    except Exception as e:
-        log.error(f'Exception when disconnecting from the host: {str(e)}')
+    except Exception as exc:
+        log.error(f'Exception when disconnecting from the host: {str(exc)}')
     sys.exit(0)
 
 
