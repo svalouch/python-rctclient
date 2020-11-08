@@ -6,51 +6,67 @@ Tools and scripts
 #################
 
 Extra scripts and tools can be found in the ``tools`` subfolder of the repository. They usually require extra
-dependencies or special use-cases and are thus not integrated into the main :ref:`cli` tool. The tools usually lack a
-sophisticated user interface and error handling is kept at a minimum.
+dependencies or cater to special use-cases and are thus not integrated into the main :ref:`cli` tool. The tools usually
+lack a sophisticated user interface and error handling is kept at a minimum.
 
-histogram2influxdb.py
-*********************
-This tool requires the Python modules `influxdb <https://pypi.org/project/influxdb/>`_ and `PyYAML
-<https://pypi.org/project/PyYAML/>`_ as well as `click`. It reads a days worth of histogram data from the device and
-dumps it into an InfluxDB.
+histogram2csv.py
+****************
+This tool exports a days worth of histogram data from the device and stores it as CSV file. It requires `click` and
+`pytz`.
 
 The script assumes that the measurement interval is `5 minutes` (meaning that ``logger.log_rate`` equals ``300``).
-Various parameters can (and some must) be set, simply call the script with ``--help`` to list them. The most important
-one is the argument at the end, called ``DAY_BEFORE_TODAY``, which is a positive integer to denote the day "back from
-today" to query. This might sound odd at first, but allows for a cronjob that runs sometime past midnight, querying the
-day before by having ``1`` as argument, so it doesn't require date calculations in the cronjob while still allowing it
-to fetch much older data without having a different method to pass the desired date.
+The script requires a few parameters, the ``--help`` output lists them all:
+
+::
+
+   Usage: histogram2csv.py [OPTIONS] DAY_BEFORE_TODAY
+
+     Extract a day of history data from the RCT device. This tool connects to a
+     device and reads the fine-grained "minute" values of a day which is
+     DAY_BEFORE_TODAY number of days before the current day.
+
+     The output format is CSV. If --output is not given, then a name is
+     constructed from the current date. Specify "-" to have the tool print the
+     table to standard output, for use with other tools.
+
+   Options:
+     -h, --host TEXT     Host to query  [required]
+     -p, --port INTEGER  Port on the host to query [8899]
+     -o, --output FILE   Output file (use "-" for standard output), omit for
+                         "data_<date>.csv"
+
+     -H, --no-headers    When specified, does not output the column names as
+                         first row
+
+     --time-zone TEXT    Timezone of the device (not the host running the script)
+                         [Europe/Berlin]
+
+     -q, --quiet         Supress output
+     --help              Show this message and exit.
+
+The most important one is the argument at the end, called ``DAY_BEFORE_TODAY``, which is a positive integer to denote
+the day "back from today" to query. This might sound odd at first, but allows for a cronjob that runs sometime past
+midnight, querying the day before by having ``1`` as argument, so it doesn't require date calculations in the cronjob
+while still allowing it to fetch much older data without having a different method to pass the desired date.
 
 .. note::
 
    The time zone is assumed to be `Europe/Berlin`, which can be overwritten using the ``--time-zone`` parameter.
 
-Influx
-======
-The script assumes the database in the InfluxDB instance to exist. It will write to a table called ``history``. The
-``--device-name`` is used as value for the ``rct`` tag, and the fields are all float, bearing the middle portion of the
-``logger.minutes_<name>_log_ts`` as name. Thus, ``logger.minutes_ea_log_ts`` can be found in the ``ea`` field.
-writes to a table ``history``, with the `tag` ``rct`` set to the ``--device-name`` parameter.
+The script prints all log/error information to standard error to allow the output of the tool to be read from standard
+output if instructed so.
 
-Dumping
-=======
-When called with ``--dump``, a YAML file will be dropped to the current working directory. The name is comprised of the
-``--device-name`` and the date of the day that was dumped, for example ``data_rct1_2020-10-05T00:00:00.yml``. The
-structure is simple:
+Output file
+===========
+The ``--output`` parameter can be omitted, which causes the tool to write to a file using the pattern
+``data_<date>.csv``, where ``<date>`` is an isoformat-formated date and time of the day the dataset represents. So,
+when called on 2020-11-08 with ``DAY_BEFORE_TODAY``, the file will be named ``data_2020-11-07T00:00:00.csv``.
 
-.. code-block:: yaml
+If ``-`` (a dash) is passed, the CSV table will be written to standard output for use by another tool via a pipe.
 
-   2020-10-05 00:00:00:
-     ea: 5.605193857299268e-45
-     eac: 267.4178466796875
-     # ... rest of the fields
-   2020-10-05 00:05:00:
-     ea: 5.605193857299268e-45
-     eac: 376.65167236328125
-     # .. rest of the fields
+Finally, if a filename is passed, this file will be used.
 
-Note that it will always write to the InfluxDB.
+Files are written atomically, to prevent incomplete files from being present while the tool works.
 
 Handling of incomplete data
 ===========================
@@ -66,31 +82,47 @@ Holes in the devices data can occur:
 * If the device was switched off for some hours.
 
 If the device sends invalid data (incomplete dataset with valid CRC or data with invalid CRC), the query is retried
-until valid data is received.
+until valid data is received. Likewise, if the device sends frames that are not of interest (as may occur when another
+client such as the app communicates with it at the same time), the OID of that frame is logged and ignored.
 
-Example
-=======
-Invoking the script for "yesterday" and dumping a yaml file to disk can be achieved by calling it like so:
+csv2influxdb.py
+***************
+This tool takes the output CSV of the aforementioned tool `histogram2csv.py` and sends it to an InfluxDB database. The
+tool trusts both the timestamps and the header lines and does not validate the data in any way. If a column is missing,
+it will be missing in the InfluxDB table, if rows are missing they will be missing from the table, too.
 
-.. code-block:: shell-session
+::
 
-   $ ./histogram2influxdb.py --host 192.168.0.1 --dump 1
-   Requesting ubat
-           timestamp: 2020-10-05 23:59:59
-           timestamp: 2020-10-05 19:00:00
-           timestamp: 2020-10-05 15:00:00
-           timestamp: 2020-10-05 10:05:00
-           timestamp: 2020-10-05 05:10:00
-           timestamp: 2020-10-05 00:15:00
-           Reached limit
-   Requesting ul3
-           timestamp: 2020-10-05 23:59:59
-           timestamp: 2020-10-05 23:10:00
-           timestamp: 2020-10-05 18:15:00
-           timestamp: 2020-10-05 13:20:00
-           [...]
+   Usage: csv2influxdb.py [OPTIONS]
+   
+     Reads a CSV file produced by `histogram2csv.py` (requires headers) and
+     pushes it to an InfluxDB database. This tool is intended to get you
+     started and not a complete solution. It blindly trusts the timestamps and
+     headers in the file.
 
-Once all the metrics have been received, the data is dumped and written to the InfluxDB.
+   Options:
+     -i, --input FILE           Input CSV file (with headers). Supply "-" to read
+                                from standard input  [required]
+
+     -n, --device-name TEXT     Name of the device [rct1]
+     -h, --influx-host TEXT     InfluxDB hostname [localhost]
+     -p, --influx-port INTEGER  InfluxDB port [8086]
+     -d, --influx-db TEXT       InfluxDB database name [rct]
+     -u, --influx-user TEXT     InfluxDB user name [rct]
+     -P, --influx-pass TEXT     InfluxDB password [rct]
+     --help                     Show this message and exit.
+
+Influx
+======
+The script assumes that the database in the InfluxDB instance to exist. It will write to a table called ``history``.
+The ``--device-name`` is used as value for the ``rct`` tag, and the fields are all float. The names are read from the
+first (header) line of the CSV. In a CSV produced by `histogram2csv.py`, the names are the middle portion of the
+``logger.minutes_<name>_log_ts`` as name. Thus, ``logger.minutes_ea_log_ts`` can be found in the ``ea`` field.
+
+Input
+=====
+Input can be read from a file, or from standard input when called with the filename ``-``. This allows data to be piped
+from another program, such as `histogram2csv.py` without hitting the disk.
 
 read_pcap.py
 ************
