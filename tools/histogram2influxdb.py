@@ -138,6 +138,11 @@ def histogram2influxdb(host: str, port: int, device_name: str, influx_host: str,
                 click.echo('\tIncomplete frame, retrying')
                 continue
 
+            # in case something (such as a "net.package") slips in, make sure to ignore all irelevant responses
+            if rframe.id != oid.object_id:
+                click.echo(f'\tGot unexpected frame oid 0x{rframe.id:08X}')
+                continue
+
             try:
                 _, table = decode_value(DataType.TIMESERIES, rframe.data)
             except (AssertionError, struct.error):
