@@ -88,9 +88,9 @@ class ObjectInfo:
         self.unit = unit
 
         if sim_data is None:
-            if response_data_type == DataType.BOOL:
+            if self.response_data_type == DataType.BOOL:
                 self.sim_data = True
-            elif response_data_type == DataType.STRING:
+            elif self.response_data_type == DataType.STRING:
                 self.sim_data = 'ABCDEFG'
             else:
                 self.sim_data = 0
