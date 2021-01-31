@@ -20,7 +20,7 @@ except ImportError:
     sys.exit(1)
 
 from .exceptions import FrameCRCMismatch
-from .frame import ReceiveFrame, SendFrame
+from .frame import ReceiveFrame, make_frame
 from .registry import REGISTRY as R
 from .simulator import run_simulator
 from .types import Command, DataType
@@ -162,8 +162,7 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error(f'Could not connect to host: {str(exc)}')
         sys.exit(1)
 
-    sframe = SendFrame(command=Command.READ, id=oinfo.object_id)
-    sock.send(sframe.data)
+    sock.send(make_frame(command=Command.READ, id=oinfo.object_id))
     try:
         rframe = receive_frame(sock)
     except FrameCRCMismatch as exc:

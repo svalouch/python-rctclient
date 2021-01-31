@@ -21,7 +21,7 @@ import click
 import pytz
 
 from rctclient.exceptions import FrameCRCMismatch
-from rctclient.frame import ReceiveFrame, SendFrame
+from rctclient.frame import ReceiveFrame, make_frame
 from rctclient.registry import REGISTRY as R
 from rctclient.types import Command, DataType
 from rctclient.utils import decode_value, encode_value
@@ -114,9 +114,8 @@ def histogram2csv(host: str, port: int, output: Optional[str], no_headers: bool,
 
         while highest_ts > ts_start:
             cprint(f'\ttimestamp: {highest_ts}')
-            sframe = SendFrame(command=Command.WRITE, id=oid.object_id,
-                               payload=encode_value(DataType.INT32, int(highest_ts.timestamp())))
-            sock.send(sframe.data)
+            sock.send(make_frame(command=Command.WRITE, id=oid.object_id,
+                                 payload=encode_value(DataType.INT32, int(highest_ts.timestamp()))))
 
             rframe = ReceiveFrame()
             while True:

@@ -12,7 +12,8 @@ from typing import Optional
 
 class Command(IntEnum):
     '''
-    Commands that can be used with :class:`~rctclient.frame.ReceiveFrame` and :class:`~rctclient.frame.SendFrame`.
+    Commands that can be used with :class:`~rctclient.frame.ReceiveFrame`, :func:`~rctclient.frame.make_frame` as well
+    as :class:`~rctclient.frame.SendFrame`.
     '''
     #: Read command
     READ = 0x01

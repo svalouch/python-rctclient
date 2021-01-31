@@ -53,6 +53,8 @@ Classes
 Functions
 *********
 
+.. autofunction:: rctclient.frame.make_frame
+
 .. autofunction:: rctclient.utils.decode_value
 
 .. autofunction:: rctclient.utils.encode_value
