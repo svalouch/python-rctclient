@@ -50,7 +50,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'rctclient=rctclient.cli:cli',
+            'rctclient=rctclient.cli:cli [cli]',
         ],
     },
 
