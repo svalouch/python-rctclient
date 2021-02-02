@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 '''
-Imports CSV histogram data from file to influxdb. Intended to be used on the output of histogram2csv.py.
+Imports CSV histogram data from file to influxdb. Intended to be used on the output of timeseries2csv.py.
 '''
 
-# Copyright 2020, Stefan Valouch (svalouch)
+# Copyright 2020-2021, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import csv
@@ -37,13 +37,14 @@ def datetime_range(start: datetime, end: datetime, delta: timedelta):
 @click.option('-d', '--influx-db', type=str, default='rct', help='InfluxDB database name [rct]')
 @click.option('-u', '--influx-user', type=str, default='rct', help='InfluxDB user name [rct]')
 @click.option('-P', '--influx-pass', type=str, default='rct', help='InfluxDB password [rct]')
+@click.option('-r', '--resolution', type=click.Choice(['day', 'week', 'month', 'year']), default='day')
 def csv2influxdb(input: str, device_name: str, influx_host: str, influx_port: int, influx_db: str,
-                 influx_user: str, influx_pass: str) -> None:
+                 influx_user: str, influx_pass: str, resolution: str) -> None:
 
     '''
-    Reads a CSV file produced by `histogram2csv.py` (requires headers) and pushes it to an InfluxDB database. This tool
-    is intended to get you started and not a complete solution. It blindly trusts the timestamps and headers in the
-    file.
+    Reads a CSV file produced by `timeseries2csv.py` (requires headers) and pushes it to an InfluxDB database. This
+    tool is intended to get you started and not a complete solution. It blindly trusts the timestamps and headers in
+    the file.
     '''
     if input == '-':
         fin = sys.stdin
@@ -63,7 +64,7 @@ def csv2influxdb(input: str, device_name: str, influx_host: str, influx_port: in
     points = []
     for row in reader:
         points.append({
-            'measurement': 'history',
+            'measurement': f'history_{resolution}',
             'tags': {
                 'rct': device_name,
             },

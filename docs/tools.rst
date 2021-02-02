@@ -9,45 +9,97 @@ Extra scripts and tools can be found in the ``tools`` subfolder of the repositor
 dependencies or cater to special use-cases and are thus not integrated into the main :ref:`cli` tool. The tools usually
 lack a sophisticated user interface and error handling is kept at a minimum.
 
-histogram2csv.py
-****************
-This tool exports a days worth of histogram data from the device and stores it as CSV file. It requires `click` and
-`pytz`.
+timeseries2csv.py
+*****************
+.. note::
 
-The script assumes that the measurement interval is `5 minutes` (meaning that ``logger.log_rate`` equals ``300``).
-The script requires a few parameters, the ``--help`` output lists them all:
+   In earlier releases, the tool was called ``histogram2csv.py`` due to a naming error. The tool does not handle
+   histogram data but time series data.
+
+This tool extracts time series data from the device. It supports the same resolutions as the official app and outputs
+CSV data. To operate, it requires ``click`` and ``pytz`` installed as well as the rctclient module.
+
+It has one required parameter called ``DAY_BEFORE_TODAY`` that allows the user to shift the latest point to query to
+the last minute of the day that was *DAY_BEFORE_TODAY* days in the past. This is most useful for the highest resolution
+"minute" sampling rate, where setting this to ``1`` will query the entire last day, suitable for exporting the previous
+day in a cronjob during the night, for example. For the other resolutions, it should be set to ``0`` for most use cases
+to avoid unexpected results such as shifting to the previous month.
 
 ::
 
-   Usage: histogram2csv.py [OPTIONS] DAY_BEFORE_TODAY
-
-     Extract a day of history data from the RCT device. This tool connects to a
-     device and reads the fine-grained "minute" values of a day which is
-     DAY_BEFORE_TODAY number of days before the current day.
-
-     The output format is CSV. If --output is not given, then a name is
-     constructed from the current date. Specify "-" to have the tool print the
-     table to standard output, for use with other tools.
-
+   Usage: timeseries2csv.py [OPTIONS] DAY_BEFORE_TODAY
+   
+     Extract time series data from an RCT device. The tool works similar to the
+     official App, but can be run independantly, it is designed to be run from
+     a cronjob or as part of a script.
+   
+     The output format is CSV.  If --output is not given, then a name is
+     constructed from the resolution and the current date.  Specify "-" to have
+     the tool print the table to standard output, for use with other tools.
+     Unless --no-headers is set, the first line contains the column headers.
+   
+     Data is queried into the past, by specifying the latest point in time for
+     which data should be queried.  Thus, DAYS_BEFORE_TODAY selects the last
+     second of the day that is the given amount in the past.  0 therefor is the
+     incomplete current day, 1 is the end of yesterday etc.
+   
+     The device has multiple sampling memories at varying sampling intervals.
+     The resolution can be selected using --resolution, which supports
+     "minutes" (which is at 5 minute intervals), day, month and year.  The
+     amount of time to cover (back from the end of DAY_BEFORE_TODAY) can be
+     selected using --count:
+   
+     * For --resolution=minute, if DAY_BEFORE_TODAY is 0 it selects the last
+     --count hours up to the current time.
+   
+     * For --resolution=minute, if DAY_BEFORE_TODAY is greater than 0, it
+     selects --count days back.
+   
+     * For all the other resolutions, --count selects the amount of days,
+     months and years to go back, respectively.
+   
+     Note that the tool does not remove extra information: If the device sends
+     more data than was requested, that extra data is included.
+   
+     Examples:
+   
+     * The previous 3 hours at finest resolution: --resolution=minutes
+     --count=3 0
+   
+     * A whole day, 3 days ago, at finest resolution: --resolution=minutes
+     --count=24 3
+   
+     * 4 Months back, at 1 month resolution: --resolution=month --count=4 0
+   
    Options:
-     -h, --host TEXT     Host to query  [required]
-     -p, --port INTEGER  Port on the host to query [8899]
-     -o, --output FILE   Output file (use "-" for standard output), omit for
-                         "data_<date>.csv"
+     -h, --host TEXT                 Host to query  [required]
+     -p, --port INTEGER              Port on the host to query [8899]
+     -o, --output FILE               Output file (use "-" for standard output),
+                                     omit for "data_<resolution>_<date>.csv"
+   
+     -H, --no-headers                When specified, does not output the column
+                                     names as first row
+   
+     --time-zone TEXT                Timezone of the device (not the host running
+                                     the script) [Europe/Berlin].
+   
+     -q, --quiet                     Supress output.
+     -r, --resolution [minutes|day|month|year]
+                                     Resolution to query [minutes].
+     -c, --count INTEGER             Amount of time to go back, depends on
+                                     --resolution, see --help.
+   
+     --help                          Show this message and exit.
 
-     -H, --no-headers    When specified, does not output the column names as
-                         first row
+The amount of data to query can be given using the ``--count`` option, it defines how much "time" to go back. The
+actual amount depends on the ``--resolution``:
 
-     --time-zone TEXT    Timezone of the device (not the host running the script)
-                         [Europe/Berlin]
+* For "day", it operates on one hour intervals, so a count of 5 goes back 5 hours.
+* "week", "month" and "year" go back in "week", "month" and "year" intervals.
 
-     -q, --quiet         Supress output
-     --help              Show this message and exit.
-
-The most important one is the argument at the end, called ``DAY_BEFORE_TODAY``, which is a positive integer to denote
-the day "back from today" to query. This might sound odd at first, but allows for a cronjob that runs sometime past
-midnight, querying the day before by having ``1`` as argument, so it doesn't require date calculations in the cronjob
-while still allowing it to fetch much older data without having a different method to pass the desired date.
+The *output* file name is either constructed from the resolution and date of the latest (that is, highest) timestamp
+using the schema ``data_<resolution>_<date>.csv`` or whatever is specified in the ``--output`` option. If ``-`` is
+specified, it writes to standard output, suitable for piping into other programs.
 
 .. note::
 
@@ -59,14 +111,17 @@ output if instructed so.
 Output file
 ===========
 The ``--output`` parameter can be omitted, which causes the tool to write to a file using the pattern
-``data_<date>.csv``, where ``<date>`` is an isoformat-formated date and time of the day the dataset represents. So,
-when called on 2020-11-08 with ``DAY_BEFORE_TODAY``, the file will be named ``data_2020-11-07T00:00:00.csv``.
+``data_<resolution>_<date>.csv``, where ``<date>`` is an isoformat-formated date and time of the day of the highest
+(most recent) timestamp in the output data. So, when called on 2020-11-08 with ``DAY_BEFORE_TODAY``, the file will be
+named ``data_day_2020-11-07T00:00:00.csv``.
 
 If ``-`` (a dash) is passed, the CSV table will be written to standard output for use by another tool via a pipe.
 
 Finally, if a filename is passed, this file will be used.
 
 Files are written atomically, to prevent incomplete files from being present while the tool works.
+
+Specifying ``--no-headers`` causes the first line containing the column headers to be omitted.
 
 Handling of incomplete data
 ===========================
@@ -87,7 +142,7 @@ client such as the app communicates with it at the same time), the OID of that f
 
 csv2influxdb.py
 ***************
-This tool takes the output CSV of the aforementioned tool `histogram2csv.py` and sends it to an InfluxDB database. The
+This tool takes the output CSV of the aforementioned tool `timeseries2csv.py` and sends it to an InfluxDB database. The
 tool trusts both the timestamps and the header lines and does not validate the data in any way. If a column is missing,
 it will be missing in the InfluxDB table, if rows are missing they will be missing from the table, too.
 
@@ -95,34 +150,36 @@ it will be missing in the InfluxDB table, if rows are missing they will be missi
 
    Usage: csv2influxdb.py [OPTIONS]
    
-     Reads a CSV file produced by `histogram2csv.py` (requires headers) and
+     Reads a CSV file produced by `timeseries2csv.py` (requires headers) and
      pushes it to an InfluxDB database. This tool is intended to get you
      started and not a complete solution. It blindly trusts the timestamps and
      headers in the file.
-
+   
    Options:
-     -i, --input FILE           Input CSV file (with headers). Supply "-" to read
-                                from standard input  [required]
-
-     -n, --device-name TEXT     Name of the device [rct1]
-     -h, --influx-host TEXT     InfluxDB hostname [localhost]
-     -p, --influx-port INTEGER  InfluxDB port [8086]
-     -d, --influx-db TEXT       InfluxDB database name [rct]
-     -u, --influx-user TEXT     InfluxDB user name [rct]
-     -P, --influx-pass TEXT     InfluxDB password [rct]
-     --help                     Show this message and exit.
+     -i, --input FILE                Input CSV file (with headers). Supply "-" to
+                                     read from standard input  [required]
+   
+     -n, --device-name TEXT          Name of the device [rct1]
+     -h, --influx-host TEXT          InfluxDB hostname [localhost]
+     -p, --influx-port INTEGER       InfluxDB port [8086]
+     -d, --influx-db TEXT            InfluxDB database name [rct]
+     -u, --influx-user TEXT          InfluxDB user name [rct]
+     -P, --influx-pass TEXT          InfluxDB password [rct]
+     -r, --resolution [day|week|month|year]
+     --help                          Show this message and exit.
 
 Influx
 ======
-The script assumes that the database in the InfluxDB instance to exist. It will write to a table called ``history``.
-The ``--device-name`` is used as value for the ``rct`` tag, and the fields are all float. The names are read from the
-first (header) line of the CSV. In a CSV produced by `histogram2csv.py`, the names are the middle portion of the
-``logger.minutes_<name>_log_ts`` as name. Thus, ``logger.minutes_ea_log_ts`` can be found in the ``ea`` field.
+The script assumes that the database in the InfluxDB instance to exist. It will write to a table called
+``history_<resolution>_<resolution>``. The ``--device-name`` is used as value for the ``rct`` tag, and the fields are
+all float. The names are read from the first (header) line of the CSV. In a CSV produced by `timeseries2csv.py`, the
+names are the middle portion of the ``logger.minutes_<name>_log_ts`` as name. Thus, ``logger.minutes_ea_log_ts`` can be
+found in the ``ea`` field.
 
 Input
 =====
 Input can be read from a file, or from standard input when called with the filename ``-``. This allows data to be piped
-from another program, such as `histogram2csv.py` without hitting the disk.
+from another program, such as `timeseries2csv.py` without hitting the disk.
 
 read_pcap.py
 ************

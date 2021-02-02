@@ -22,7 +22,7 @@ if on_rtd:
 # -- Project information -----------------------------------------------------
 
 project = 'rctclient'
-copyright = '2020, Peter Oberhofer, Stefan Valouch'
+copyright = '2020-2021, Peter Oberhofer, Stefan Valouch'
 author = 'Stefan Valouch'
 
 # The full version, including alpha/beta/rc tags
