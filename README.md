@@ -29,7 +29,7 @@ Let's read the current battery state of charge:
 ```python
 
 import socket, select, sys
-from rctclient.frame import ReceiveFrame, SendFrame
+from rctclient.frame import ReceiveFrame, make_frame
 from rctclient.registry import REGISTRY as R
 from rctclient.types import Command
 from rctclient.utils import decode_value
@@ -41,9 +41,9 @@ sock.connect(('192.168.0.1', 8899))
 # query information about an object ID (here: battery.soc):
 object_info = R.get_by_name('battery.soc')
 
-# construct a SendFrame that will send a read command for the object ID we want, and send it
-send_frame = SendFrame(command=Command.READ, id=object_info.object_id)
-sock.send(send_frame.data)
+# construct a frame that will send a read command for the object ID we want, and send it
+send_frame = make_frame(command=Command.READ, id=object_info.object_id)
+sock.send(send_frame)
 
 # loop until we got the entire response frame
 frame = ReceiveFrame()
