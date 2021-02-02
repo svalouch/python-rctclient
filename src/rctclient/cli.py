@@ -4,13 +4,14 @@ Command line interface implementation.
 '''
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020, Stefan Valouch (svalouch)
+# Copyright 2020-2021, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import logging
 import select
 import socket
 import sys
+from datetime import datetime
 from typing import List, Optional
 
 try:
@@ -24,7 +25,7 @@ from .frame import ReceiveFrame, make_frame
 from .registry import REGISTRY as R
 from .simulator import run_simulator
 from .types import Command, DataType
-from .utils import decode_value
+from .utils import decode_value, encode_value
 
 log = logging.getLogger('rctclient.cli')
 
@@ -115,6 +116,10 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     If "debug" is set, log output is sent to stderr, so the value can be read from stdout while still catching
     everything else on stderr.
 
+    Timeseries data will be queried using the current time. Note that the device may send an arbitrary amount of data.
+    The output will be a list of "timestamp=value" pairs separated by a comma, the timestamps are in isoformat, and
+    they are not altered or timezone-corrected but passed from the device as-is.
+
     Examples:
 
     \b
@@ -149,8 +154,8 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error('Invalid --id parameter, can\'t parse', err=True)
         sys.exit(1)
 
-    if oinfo.response_data_type in (DataType.EVENT_TABLE, DataType.TIMESERIES):
-        log.error('Timeseries and event table are not supported by this tool.')
+    if oinfo.response_data_type == DataType.EVENT_TABLE:
+        log.error('The event table is not supported by this tool.')
         sys.exit(1)
 
     log.debug('Connecting to host')
@@ -162,7 +167,11 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error(f'Could not connect to host: {str(exc)}')
         sys.exit(1)
 
-    sock.send(make_frame(command=Command.READ, id=oinfo.object_id))
+    if oinfo.response_data_type == DataType.TIMESERIES:
+        sock.send(make_frame(command=Command.WRITE, id=oinfo.object_id,
+                             payload=encode_value(DataType.INT32, int(datetime.now().timestamp()))))
+    else:
+        sock.send(make_frame(command=Command.READ, id=oinfo.object_id))
     try:
         rframe = receive_frame(sock)
     except FrameCRCMismatch as exc:
@@ -174,7 +183,11 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error(f'Received unexpected frame, ID is 0x{rframe.id:X}, expected 0x{oinfo.object_id:X}')
         sys.exit(1)
 
-    value = decode_value(oinfo.response_data_type, rframe.data)
+    if oinfo.response_data_type == DataType.TIMESERIES:
+        _, table = decode_value(oinfo.response_data_type, rframe.data)
+        value = ', '.join({f'{k:%Y-%m-%dT%H:%M:%S}={v:.4f}' for k, v in table.items()})
+    else:
+        value = decode_value(oinfo.response_data_type, rframe.data)
 
     if verbose:
         description = oinfo.description if oinfo.description is not None else ''
