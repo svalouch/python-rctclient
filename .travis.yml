@@ -25,3 +25,11 @@ matrix:
         - pytest --cov=rctclient --cov-report=term-missing ${@}
           # - oylint --mypy src/rctclient
           # - pytest --pylint src/rctclient
+    - language: python
+      python: '3.9'
+      install:
+        - pip install -e .[cli,tests,docs]
+      script:
+        - pytest --cov=rctclient --cov-report=term-missing ${@}
+          # - oylint --mypy src/rctclient
+          # - pytest --pylint src/rctclient
