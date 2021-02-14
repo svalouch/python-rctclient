@@ -113,7 +113,7 @@ class DataType(IntEnum):
     #: String (may contain `\0` padding).
     STRING = 10
 
-    # user defined, usually composite datatypes
+    # user defined, usually composite datatypes follow:
 
     #: Non-native type: Timeseries data consisting of a tuple of a timestamp for the record (usually the day) and a
     #: dict mapping values to timestamps. Can not be used for encoding.
@@ -125,55 +125,45 @@ class DataType(IntEnum):
 
 class EventEntry:
     '''
-    Entry in the error log table. The table consists of an `entry_type` that controls the rest of the structure.
+    A single entry in the event table. An entry consists of a type, which controls the meaning of the other fields.
 
-    Not all of the entry types are known yet. Of the known ones:
+    .. note::
 
-    * ``s`` and ``w`` are single events, such as changing a value. The fields `value_old` and `value_new` contain the
-      old and new value, specific to the ID of the data. Additionally, they contain the `object_id` of the object they
-      describe. They do not contain a end timestamp.
-    * All other types observed so far are ranges of events. In addition to the `timestamp` signaling the start of the
-      event, they also set `timestamp_end` to signal the end of the event. They do not set `value_old`, `value_new` or
-      `object_id` as they are not describing a object but an event. Some contain additional payload that is not yet
-      extracted.
+       Not a whole lot is known about the entries. Information (and this structure) may change in the future. The
+       payload fields are stored as-is for now, as the information known to this date is too limited. Refer to the
+       documentation for more information about the event table.
 
-    :param entry_type: The type of the entry (see above).
-    :param timestamp: Timestamp of the entry (start time unless ``s`` entry type).
-    :param object_id: The ID of the object, for lookup in the registry.
-    :param timestamp_end: For entry types ``R`` and ``T``, the end of the event, forming a time range.
-    :param value_old: Old value before the event, for event type ``s``. Raw value, interpretation via the registry
-       required.
-    :param value_new: New value after the event, for event type ``s``.
+       Furthermore, the entry type is believed to be a single byte, so unless more information is known that changes
+       this, the type is validated to be in the range 0-255.
+
+    Each entry has a timestamp field that, depending on the type, either denotes the start time for a ranged event
+    (such as the start of an error condition) or the precise time when the event occured (such as for a parameter
+    change).
+
+    The element-fields contain the raw value from the device. Use :func:`~rctclient.utils.decode_value` to decode them
+    if the data type is known.
+
+    :param entry_type: The type of the entry.
+    :param timestamp: Timestamp of the entry (element1).
+    :param element2: The second element of the entry.
+    :param element3: The third element of the entry.
+    :param element4: The fourth element of the entry.
     '''
-    entry_type: str
+    entry_type: int
     timestamp: datetime
-    timestamp_end: Optional[datetime]
-    object_id: int
-    value_old: Optional[int]
-    value_new: Optional[int]
+    element2: Optional[bytes]
+    element3: Optional[bytes]
+    element4: Optional[bytes]
 
-    def __init__(self, entry_type: str, timestamp: datetime, object_id: int, timestamp_end: Optional[datetime] = None,
-                 value_old: Optional[int] = None, value_new: Optional[int] = None) -> None:
-        if entry_type not in ['c', 'd', 'k', 'O', 'P', 'r', 'R', 's', 'S', 'T', 'v', 'w', 'W', 'x', 'X', 'y', 'Y', 'Z']:
-            raise ValueError(f'Entry type {entry_type} invalid')
+    def __init__(self, entry_type: int, timestamp: datetime, element2: Optional[bytes] = None,
+                 element3: Optional[bytes] = None, element4: Optional[bytes] = None) -> None:
+        if entry_type < 0 or entry_type > 0xff:
+            raise ValueError(f'Entry type {entry_type} outside of range 0-255')
         self.entry_type = entry_type
         self.timestamp = timestamp
-        self.object_id = object_id
-
-        self.value_old = value_old
-        self.value_new = value_new
-        self.timestamp_end = timestamp_end
-
-        if entry_type in ['s', 'w']:
-            if value_old is None or value_new is None:
-                raise ValueError('old or new value must be set for entry type s')
-            if timestamp_end is not None:
-                raise ValueError('timestamp_end must not be set for entry type s')
-        else:
-            if value_old is not None or value_new is not None:
-                raise ValueError(f'values old or new must not be set for entry type {entry_type}')
-            if timestamp_end is None:
-                raise ValueError(f'end timestamp must be set for entry type {entry_type}')
+        self.element2 = element2
+        self.element3 = element3
+        self.element4 = element4
 
     def __repr__(self) -> str:
-        return f'<EventEntry(type={self.entry_type}, ts={self.timestamp}, object_id={self.object_id:x})>'
+        return f'<EventEntry(type=0x{self.entry_type:x}, ts={self.timestamp})>'

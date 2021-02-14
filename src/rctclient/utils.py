@@ -150,18 +150,27 @@ def _decode_event_table(data: bytes) -> Tuple[datetime, Dict[datetime, EventEntr
     assert len(data) % 4 == 0
     assert (len(data) - 4) % 20 == 0
     for pair in range(0, int(len(data) / 4 - 1), 5):
-        entry_type = bytes([struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]]).decode('ascii')
+        # this is most likely a single byte of information, but this is not sure yet
+        # entry_type = bytes([struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]]).decode('ascii')
+        entry_type = struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]
         timestamp = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4 + 4:4 + pair * 4 + 8])[0])
-        if entry_type in ['s', 'w']:
-            object_id = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
-            value_old = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
-            value_new = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
-            tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
-                                           value_old=value_old, value_new=value_new)
-        else:
-            timestamp_end = datetime.fromtimestamp(
-                struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0])
-            object_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
-            tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
-                                           timestamp_end=timestamp_end)
+        element2 = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
+        element3 = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
+        element4 = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
+        tabval[timestamp] = EventEntry(entry_type=entry_type, timestamp=timestamp, element2=element2, element3=element3,
+                                       element4=element4)
+        # these two are known to contain object IDs
+        # if entry_type in ['s', 'w']:
+        #     object_id = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
+        #     value_old = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
+        #     value_new = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
+        #     tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
+        #                                    value_old=value_old, value_new=value_new)
+        # the rest is assumed to be range-based events
+        # else:
+        #     timestamp_end = datetime.fromtimestamp(
+        #         struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0])
+        #     object_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
+        #     tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
+        #                                    timestamp_end=timestamp_end)
     return timestamp, tabval

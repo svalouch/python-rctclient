@@ -116,9 +116,10 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     If "debug" is set, log output is sent to stderr, so the value can be read from stdout while still catching
     everything else on stderr.
 
-    Timeseries data will be queried using the current time. Note that the device may send an arbitrary amount of data.
-    The output will be a list of "timestamp=value" pairs separated by a comma, the timestamps are in isoformat, and
-    they are not altered or timezone-corrected but passed from the device as-is.
+    Timeseries data and the event table will be queried using the current time. Note that the device may send an
+    arbitrary amount of data. For time series data, The output will be a list of "timestamp=value" pairs separated by a
+    comma, the timestamps are in isoformat, and they are not altered or timezone-corrected but passed from the device
+    as-is. Likewise for event table entries, but their values are printed in hexadecimal.
 
     Examples:
 
@@ -154,10 +155,6 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error('Invalid --id parameter, can\'t parse', err=True)
         sys.exit(1)
 
-    if oinfo.response_data_type == DataType.EVENT_TABLE:
-        log.error('The event table is not supported by this tool.')
-        sys.exit(1)
-
     log.debug('Connecting to host')
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -167,7 +164,9 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error(f'Could not connect to host: {str(exc)}')
         sys.exit(1)
 
-    if oinfo.response_data_type == DataType.TIMESERIES:
+    is_ts = oinfo.response_data_type == DataType.TIMESERIES
+    is_ev = oinfo.response_data_type == DataType.EVENT_TABLE
+    if is_ts or is_ev:
         sock.send(make_frame(command=Command.WRITE, id=oinfo.object_id,
                              payload=encode_value(DataType.INT32, int(datetime.now().timestamp()))))
     else:
@@ -183,9 +182,17 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
         log.error(f'Received unexpected frame, ID is 0x{rframe.id:X}, expected 0x{oinfo.object_id:X}')
         sys.exit(1)
 
-    if oinfo.response_data_type == DataType.TIMESERIES:
+    if is_ts or is_ev:
         _, table = decode_value(oinfo.response_data_type, rframe.data)
-        value = ', '.join({f'{k:%Y-%m-%dT%H:%M:%S}={v:.4f}' for k, v in table.items()})
+        if is_ts:
+            value = ', '.join({f'{k:%Y-%m-%dT%H:%M:%S}={v:.4f}' for k, v in table.items()})
+        else:
+            value = ''
+            for entry in table.values():
+                e2 = f'0x{entry.element2:x}' if entry.element2 is not None else ''
+                e3 = f'0x{entry.element3:x}' if entry.element3 is not None else ''
+                e4 = f'0x{entry.element4:x}' if entry.element4 is not None else ''
+                value += f'0x{entry.entry_type:x},{entry.timestamp:%Y-%m-%dT%H:%M:%S},{e2},{e3},{e4}\n'
     else:
         value = decode_value(oinfo.response_data_type, rframe.data)
 
