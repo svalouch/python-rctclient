@@ -46,6 +46,7 @@ setup(
             'sphinx-autodoc-typehints',
             'sphinx-click',
             'sphinx-rtd-theme',
+            'recommonmark>=0.5.0',
         ],
     },
     entry_points={

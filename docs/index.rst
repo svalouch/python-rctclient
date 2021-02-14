@@ -24,6 +24,7 @@ file for further information.
    simulator
    api
    tools
+   CHANGELOG
 
 .. toctree::
    :maxdepth: 1

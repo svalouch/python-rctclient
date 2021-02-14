@@ -39,6 +39,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx_autodoc_typehints',
     'sphinx_click.ext',
+    'recommonmark',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
