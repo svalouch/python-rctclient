@@ -36,6 +36,8 @@ def make_frame(command: Command, id: int, payload: bytes = b'', address: int = 0
 
     For a variant which stores the input values as well as the output, see :class:`~rctclient.frame.SendFrame`.
 
+    .. versionadded:: 0.0.2
+
     :param command: The command to transmit.
     :param id: The object ID to target.
     :param payload: The payload to be transmitted. Use :func:`~rctclient.utils.encode_value` to generate valid

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.0.3 - Unreleased
+
+**Features**
+
+**Bugfixes**
+
 ## Release 0.0.2 - 2021-02-17
 
 **Features**
