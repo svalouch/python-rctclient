@@ -50,6 +50,10 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Disable automatic quotes, which converts '--' to '—' (among others) which
+# breaks the CLI examples where the source is a python docstring and can't be
+# changes without interfering with CLI --help output.
+smartquotes = False
 
 # -- Options for HTML output -------------------------------------------------
 

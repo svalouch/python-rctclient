@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 **Features**
 
+**Documentation**
+
+- Disable Smartquotes (https://docutils.sourceforge.io/docs/user/smartquotes.html) which renders double-dash strings as
+  a single hyphen character, and the CLI documentation can't be copy-pasted to a terminal anymore without manually
+  editing it before submitting. (Issue #5).
+
 **Bugfixes**
 
 - CLI: Fix incomplete example in `read-value` help output (Issue #5).
