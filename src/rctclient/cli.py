@@ -124,8 +124,8 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     Examples:
 
     \b
-    rctclient read-value --name temperature.sink_temp_power_reduction
-    rctclient read-value --id 0x90B53336
+    rctclient read-value --host 192.168.0.1 --name temperature.sink_temp_power_reduction
+    rctclient read-value --host 192.168.0.1 --id 0x90B53336
     \f
     :param ctx: Click context
     :param port: The port number.

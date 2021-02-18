@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 
 **Bugfixes**
 
+- CLI: Fix incomplete example in `read-value` help output (Issue #5).
+
 ## Release 0.0.2 - 2021-02-17
 
 **Features**
