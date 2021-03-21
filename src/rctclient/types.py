@@ -1,7 +1,11 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020, Stefan Valouch (svalouch)
+# Copyright 2020-2021, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
+
+'''
+Type declarations.
+'''
 
 # pylint: disable=too-many-arguments,too-few-public-methods
 
@@ -57,7 +61,7 @@ class ObjectGroup(IntEnum):
     POWER_MNG = 17
     BUF_V_CONTROL = 18
     DB = 19
-    SWITCH_ON_BOARD = 20
+    SWITCH_ON_COND = 20
     P_REC = 21
     MODBUS = 22
     BAT_MNG_STRUCT = 23
@@ -72,6 +76,8 @@ class ObjectGroup(IntEnum):
     LINE_MON = 32
     OTHERS = 33
     BATTERY_PLACEHOLDER = 34
+    FRT = 35
+    PARTITION = 36
 
 
 class FrameType(IntEnum):
