@@ -194,7 +194,11 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
                 e4 = f'0x{entry.element4:x}' if entry.element4 is not None else ''
                 value += f'0x{entry.entry_type:x},{entry.timestamp:%Y-%m-%dT%H:%M:%S},{e2},{e3},{e4}\n'
     else:
-        value = decode_value(oinfo.response_data_type, rframe.data)
+        # hexdump if the data type is now known
+        if oinfo.response_data_type == DataType.UNKNOWN:
+            value = '0x' + rframe.data.hex()
+        else:
+            value = decode_value(oinfo.response_data_type, rframe.data)
 
     if verbose:
         description = oinfo.description if oinfo.description is not None else ''

@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 **Bugfixes**
 
 - CLI: Fix incomplete example in `read-value` help output (Issue #5).
+- CLI: Change output for OIDs of type `UNKNOWN` to a hexdump. This works around the problem of some of them being
+  marked as being strings when instead they carry complex data that can't easily be represented as textual data.
 
 ## Release 0.0.2 - 2021-02-17
 
