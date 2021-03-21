@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 **Features**
 
+- Registry: Update with new OIDs from OpenWB.
+
 **Documentation**
 
 - Disable Smartquotes (https://docutils.sourceforge.io/docs/user/smartquotes.html) which renders double-dash strings as
@@ -17,6 +19,9 @@ All notable changes to this project will be documented in this file.
 - CLI: Fix incomplete example in `read-value` help output (Issue #5).
 - CLI: Change output for OIDs of type `UNKNOWN` to a hexdump. This works around the problem of some of them being
   marked as being strings when instead they carry complex data that can't easily be represented as textual data.
+- Registry: Mark some OIDs that are known to contain complex data that hasn't been decoded yet as being of type
+  `UNKNOWN` instead of `STRING`. Most of them cannot be decoded to a valid string most of the time, and even then the
+  content would not make sense. This change allows users to filter these our, e.g. when printing their content.
 
 ## Release 0.0.2 - 2021-02-17
 
