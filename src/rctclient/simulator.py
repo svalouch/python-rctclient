@@ -73,11 +73,11 @@ def socket_thread(connection, address) -> None:
                 while consumed < len(buf):
                     try:
                         i = frame.consume(buf)
-                    except FrameCRCMismatch as e:
-                        log.warning(f'Discard frame with wrong CRC checksum. Got 0x{e.received_crc:x}, calculted '
-                                    f'0x{e.calculated_crc:x}, consumed {e.consumed_bytes} bytes')
+                    except FrameCRCMismatch as exc:
+                        log.warning(f'Discard frame with wrong CRC checksum. Got 0x{exc.received_crc:x}, calculated '
+                                    f'0x{exc.calculated_crc:x}, consumed {exc.consumed_bytes} bytes')
                         log.warning(f'Frame data: {frame.data.hex()}')
-                        consumed += e.consumed_bytes
+                        consumed += exc.consumed_bytes
                         frame = ReceiveFrame()
                     else:
                         log.debug(f'Frame consumed {i} bytes')
@@ -86,10 +86,11 @@ def socket_thread(connection, address) -> None:
                             log.debug(f'Complete frame: {frame}')
                             try:
                                 send_sim_response(connection, frame, log)
-                            except Exception as e:
-                                log.warning(f'Caught {type(e)} during send_sim_response: {str(e)}')
+                            except Exception as exc:
+                                log.warning(f'Caught {type(exc)} during send_sim_response: {str(exc)}')
 
                             frame = ReceiveFrame()
+                    buf = buf[consumed:]
             else:
                 break
 

@@ -22,6 +22,8 @@ All notable changes to this project will be documented in this file.
 - Registry: Mark some OIDs that are known to contain complex data that hasn't been decoded yet as being of type
   `UNKNOWN` instead of `STRING`. Most of them cannot be decoded to a valid string most of the time, and even then the
   content would not make sense. This change allows users to filter these our, e.g. when printing their content.
+- Simulator: If multiple requests were sent in the same TCP paket, the simulator returned the answer for the first
+  frame that it got for all of the requests in the buffer.
 
 ## Release 0.0.2 - 2021-02-17
 
