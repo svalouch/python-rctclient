@@ -1,6 +1,6 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020, Stefan Valouch (svalouch)
+# Copyright 2020,2021 Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
@@ -209,8 +209,9 @@ class ReceiveFrame:
     _address: int
 
     _dbg: str
+    _ignore_crc_mismatch: bool
 
-    def __init__(self, frame_type: FrameType = FrameType.STANDARD) -> None:
+    def __init__(self, frame_type: FrameType = FrameType.STANDARD, ignore_crc_mismatch: bool = False) -> None:
         self._complete = False
         self._crc_ok = False
         self._escaping = False
@@ -220,6 +221,7 @@ class ReceiveFrame:
         self._command = Command._NONE
         self._buffer = bytearray()
         self._dbg = ''
+        self._ignore_crc_mismatch = ignore_crc_mismatch
 
         # output data
         self._id = 0
@@ -227,11 +229,29 @@ class ReceiveFrame:
         self._address = 0
 
     def __repr__(self) -> str:
-        return f'<ReceiveFrame(cmd={self.command.name}, id={self.id:x}, address={self.address:x}, data={self.data.hex()})>'
+        return f'<ReceiveFrame(cmd={self.command.name}, id={self.id:x}, address={self.address:x}, ' \
+               f'data={self.data.hex()})>'
 
     @property
     def debug(self) -> str:
+        '''
+        Returns internal debug information gathered by consume().
+        '''
         return self._dbg
+
+    @property
+    def ignore_crc_mismatch(self) -> bool:
+        '''
+        Returns whether CRC mismatches are ignored during decoding.
+        '''
+        return self._ignore_crc_mismatch
+
+    @ignore_crc_mismatch.setter
+    def ignore_crc_mismatch(self, newval: bool) -> None:
+        '''
+        Changes whether CRC mismatches are ignored during decoding.
+        '''
+        self._ignore_crc_mismatch = newval
 
     @property
     def id(self) -> int:
@@ -272,6 +292,13 @@ class ReceiveFrame:
         Returns the command.
         '''
         return self._command
+
+    @property
+    def crc_ok(self) -> bool:
+        '''
+        Returns whether the CRC is valid. The value is only valid after a complete frame has arrived.
+        '''
+        return self._crc_ok
 
     def complete(self) -> bool:
         '''
@@ -323,41 +350,52 @@ class ReceiveFrame:
                     self._dbg += '      buffer length == header with length\n'
                     cmd = struct.unpack('B', bytes([self._buffer[1]]))[0]
                     self._dbg += f'      cmd: {cmd}\n'
-                    if cmd == Command.LONG_RESPONSE or cmd == Command.LONG_WRITE:
+                    if cmd in (Command.LONG_RESPONSE, cmd == Command.LONG_WRITE):
                         self._frame_length = struct.unpack('>H', self._buffer[2:4])[0] + 2  # 2 byte length MSBF
                     else:
                         self._frame_length = struct.unpack('>B', bytes([self._buffer[2]]))[0] + 1  # 1 byte length
 
-                    self._frame_length += 2  # 2 bytes header
+                    self._frame_length += FRAME_LENGTH_HEADER + FRAME_LENGTH_COMMAND + FRAME_LENGTH_CRC16
                     self._dbg += f'      frame length: {self._frame_length}\n'
 
                 else:
                     self._dbg += f'      buffer length {len(self._buffer)} > header with length\n'
-                    if len(self._buffer) == self._frame_length + FRAME_LENGTH_CRC16:
+                    if len(self._buffer) == self._frame_length:
                         self._dbg += '      buffer contains full frame\n'
                         self._complete = True
                         self._dbg += f'buffer: {self._buffer.hex()}\n'
                         try:
-                            self.decode()
-                        except FrameCRCMismatch as e:
-                            e.consumed_bytes = i
+                            self.decode(self._ignore_crc_mismatch)
+                        except FrameCRCMismatch as exc:
+                            exc.consumed_bytes = i
                             raise
                         return i
         return i
 
-    def decode(self):
+    def decode(self, ignore_crc_mismatch: bool = False):
         '''
         Decodes a received stream. This function is automatically called by :func:`consume` once a complete frame has
         been received.
+
+        :param ignore_crc_mismatch: Whether to ignore CRC mismatches.
+
+           .. warning::
+
+              If set, no exception is raised when the checksum doesn't match, and the code tries to decode the data as
+              if it was valid. It may not work, and the function may blow up in various ways as a result of this.
+
+              This is meant for debugging only!
 
         :raises FrameCRCMismatch: If the CRC checksum in the received data does not match up with the calculated
            values.
         '''
         # the crc16 checksum is 2 bytes at the end of the stream
         self._crc16 = struct.unpack('>H', self._buffer[-2:])[0]
-        calc_crc16 = CRC16(self._buffer[1:-2])
-        if self._crc16 == calc_crc16:
-            self._crc_ok = True
+        # first byte and crc is not part of the calculation:
+        calc_crc16 = CRC16(self._buffer[FRAME_LENGTH_HEADER:-FRAME_LENGTH_CRC16])
+
+        self._crc_ok = self._crc16 == calc_crc16
+        if self._crc_ok or ignore_crc_mismatch:
 
             command = struct.unpack('>B', bytes([self._buffer[1]]))[0]
             self._command = Command(command)
@@ -381,6 +419,7 @@ class ReceiveFrame:
             self._data = self._buffer[idx:idx + data_length]
             idx += data_length
         else:
+            # This is NOT reached if self._ignore_crc_mismatch is set
             raise FrameCRCMismatch('CRC mismatch', self._crc16, calc_crc16)
 
     def is_complete(self) -> bool:

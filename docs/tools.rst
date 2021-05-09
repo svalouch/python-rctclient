@@ -28,67 +28,67 @@ to avoid unexpected results such as shifting to the previous month.
 ::
 
    Usage: timeseries2csv.py [OPTIONS] DAY_BEFORE_TODAY
-   
+
      Extract time series data from an RCT device. The tool works similar to the
      official App, but can be run independantly, it is designed to be run from
      a cronjob or as part of a script.
-   
+
      The output format is CSV.  If --output is not given, then a name is
      constructed from the resolution and the current date.  Specify "-" to have
      the tool print the table to standard output, for use with other tools.
      Unless --no-headers is set, the first line contains the column headers.
-   
+
      Data is queried into the past, by specifying the latest point in time for
      which data should be queried.  Thus, DAYS_BEFORE_TODAY selects the last
      second of the day that is the given amount in the past.  0 therefor is the
      incomplete current day, 1 is the end of yesterday etc.
-   
+
      The device has multiple sampling memories at varying sampling intervals.
      The resolution can be selected using --resolution, which supports
      "minutes" (which is at 5 minute intervals), day, month and year.  The
      amount of time to cover (back from the end of DAY_BEFORE_TODAY) can be
      selected using --count:
-   
+
      * For --resolution=minute, if DAY_BEFORE_TODAY is 0 it selects the last
      --count hours up to the current time.
-   
+
      * For --resolution=minute, if DAY_BEFORE_TODAY is greater than 0, it
      selects --count days back.
-   
+
      * For all the other resolutions, --count selects the amount of days,
      months and years to go back, respectively.
-   
+
      Note that the tool does not remove extra information: If the device sends
      more data than was requested, that extra data is included.
-   
+
      Examples:
-   
+
      * The previous 3 hours at finest resolution: --resolution=minutes
      --count=3 0
-   
+
      * A whole day, 3 days ago, at finest resolution: --resolution=minutes
      --count=24 3
-   
+
      * 4 Months back, at 1 month resolution: --resolution=month --count=4 0
-   
+
    Options:
      -h, --host TEXT                 Host to query  [required]
      -p, --port INTEGER              Port on the host to query [8899]
      -o, --output FILE               Output file (use "-" for standard output),
                                      omit for "data_<resolution>_<date>.csv"
-   
+
      -H, --no-headers                When specified, does not output the column
                                      names as first row
-   
+
      --time-zone TEXT                Timezone of the device (not the host running
                                      the script) [Europe/Berlin].
-   
+
      -q, --quiet                     Supress output.
      -r, --resolution [minutes|day|month|year]
                                      Resolution to query [minutes].
      -c, --count INTEGER             Amount of time to go back, depends on
                                      --resolution, see --help.
-   
+
      --help                          Show this message and exit.
 
 The amount of data to query can be given using the ``--count`` option, it defines how much "time" to go back. The
@@ -149,16 +149,16 @@ it will be missing in the InfluxDB table, if rows are missing they will be missi
 ::
 
    Usage: csv2influxdb.py [OPTIONS]
-   
+
      Reads a CSV file produced by `timeseries2csv.py` (requires headers) and
      pushes it to an InfluxDB database. This tool is intended to get you
      started and not a complete solution. It blindly trusts the timestamps and
      headers in the file.
-   
+
    Options:
      -i, --input FILE                Input CSV file (with headers). Supply "-" to
                                      read from standard input  [required]
-   
+
      -n, --device-name TEXT          Name of the device [rct1]
      -h, --influx-host TEXT          InfluxDB hostname [localhost]
      -p, --influx-port INTEGER       InfluxDB port [8086]
@@ -241,9 +241,7 @@ received packets into two streams. This has an important implication: The tool d
 in a concise manner, but will read one stream after the other. The result is a long list of requests, then a long list
 of answers.
 
-An example for the streams looks like this:
-
-::
+An example for the streams looks like this::
 
    Stream    0 TCP 192.168.0.10:52730 > 192.168.0.1:8899 <PacketList: TCP:187 UDP:0 ICMP:0 Other:0> 6840 bytes
    Stream    1 TCP 192.168.0.1:8899 > 192.168.0.10:52730 <PacketList: TCP:167 UDP:0 ICMP:0 Other:0> 30281 bytes
@@ -252,87 +250,77 @@ An example for the streams looks like this:
 
 There are four streams of two devices (``192.168.0.10`` and ``192.168.0.11``) communicating with the device.
 
-After the streams have been listed, the parsing process begins. Here are a few examples from the first stream, which
-contains the `READ`-requests:
+After the streams have been listed, the parsing process begins stream by stream. Each stream may contain multiple
+packets, they are parsed one by one in segments. One such segment is shown below::
 
-::
-
-   frame consumed 9 bytes, 36 remaining
+   NEW INPUT: 2021-05-07 06:36:44.530490 | 2b0104b403a7e6b9c72b0104663f1452e0692b01041ac87aa06c942b0104db2d2d69ae55ab2b010491617c58480f2b0104db11855b0f0a2b01040cb5d21b4894
+   frame consumed 9 bytes, 55 remaining
    Frame complete: <ReceiveFrame(cmd=READ, id=b403a7e6, address=0, data=)>
-   Could not find ID in registry
-   frame consumed 9 bytes, 27 remaining
+   Received read : battery_placeholder[0].soc_update_since
+
+   frame consumed 9 bytes, 46 remaining
    Frame complete: <ReceiveFrame(cmd=READ, id=663f1452, address=0, data=)>
-   Could not find ID in registry
+   Received read : power_mng.n_batteries
+
+   frame consumed 9 bytes, 37 remaining
+   Frame complete: <ReceiveFrame(cmd=READ, id=1ac87aa0, address=0, data=)>
+   Received read : g_sync.p_ac_load_sum_lp
+
+   frame consumed 10 bytes, 27 remaining
+   Frame complete: <ReceiveFrame(cmd=READ, id=db2d69ae, address=0, data=)>
+   Received read : g_sync.p_ac_sum_lp
+
    frame consumed 9 bytes, 18 remaining
-   Frame complete: <ReceiveFrame(cmd=READ, id=f8c0d255, address=0, data=)>
-   Received read :  651 battery.cells[0]
+   Frame complete: <ReceiveFrame(cmd=READ, id=91617c58, address=0, data=)>
+   Received read : g_sync.p_ac_grid_sum_lp
+
    frame consumed 9 bytes, 9 remaining
-   Frame complete: <ReceiveFrame(cmd=READ, id=8ef6fbbd, address=0, data=)>
-   Received read :  385 battery.cells[1]
+   Frame complete: <ReceiveFrame(cmd=READ, id=db11855b, address=0, data=)>
+   Received read : dc_conv.dc_conv_struct[0].p_dc_lp
 
-This might look confusing and the output could surely be improved, but it tells you all there is to know:
+   frame consumed 9 bytes, 0 remaining
+   Frame complete: <ReceiveFrame(cmd=READ, id=cb5d21b, address=0, data=)>
+   Received read : dc_conv.dc_conv_struct[1].p_dc_lp
 
-The first frame consumed 9 bytes and left 36 in the buffer. That means that a :class:`~rctclient.frame.ReceiveFrame`
-read 9 bytes. The next line shows that the frame is complete, meaning that the frame got the entire message and the
-checksums matched. It is a `READ` command to ID ``0xB403A7E6`` without payload (as is common for `READ`-requests.
-The interesting part is the next line that reads **Could not find ID in registry**. That line makes it a very
-interesting artifact, it's a frame that the official app created and where the registry has no details about yet. If
-you search for the ``id`` in the output, the response frame should appear somewhere. More on that later.
+   END OF INPUT-SEGMENT
 
-The second frame is another unknown one, then follow two known ones: `READ`-requests to ``battery.cells[0]`` and
-``battery.cells[1]``. Going further, let's scroll down in the capture, searching for the first unknown ID from above,
-``b403a7e6``. This yields a hit:
+The frame is printed first, with the time stamp encoded in the dump and the hexadecimal output of its contents. The
+data is then fed to the frame parser :class:`~rctclient.frame.ReceiveFrame`. The first one shows that it consumed 9
+bytes, so the buffer contains 55 more bytes. It is a *READ* command, requesting ID ``0xb403a7e6``. Read-requests do
+not carry a payload. The response is usually in another stream (for pcap files created with *tcpdump* at least), so
+the response should be further down the output. Other frames follow until the end of the segment is reached and the
+next one is fetched from the stream (or the next one).
 
-::
+Sometimes, data can have an invalid checksum. For example::
 
-   Frame 0 CRC mismatch, got 260 but calculated 735. Buffer: 2b0508b403a7e647e0692b0104
-   002b
-   frame consumed 2 bytes, 235 remaining
-   Frame complete: <ReceiveFrame(cmd=_NONE, id=0, address=0, data=)> Buffer: 2b0508b403a7e647e0692b0104
-   Could not find ID in registry
-   Frame 0 CRC mismatch, got 26175 but calculated 7121. Buffer: 2b0104002b0505663f
-   0508
-   frame consumed 18 bytes, 217 remaining
-   Frame complete: <ReceiveFrame(cmd=_NONE, id=0, address=0, data=)> Buffer: 2b0104002b0505663f
-   Could not find ID in registry
-   frame consumed 111 bytes, 106 remaining
+   CRC mismatch, got 0xBB9B but calculated 0x6E18. Buffer: 2b050597e203f955bb9b
+   Attempting to decode while ignoring checksum
+   frame consumed 11 bytes, 36 remaining
+   Frame complete: <ReceiveFrame(cmd=RESPONSE, id=97e203f9, address=0, data=55)>
+   Received reply : power_mng.is_grid                        type: BOOL              value: True
 
-Bummer. Something happened, perhaps a concurrent call from the other app on the second device. The frame could read the
-data just fine but the checksum didn't match in the end. It prints the content of the frames buffer
-(``2b0508b403a7e647e0692b0104``) which contains the id after the header, command and length, and that's what the search
-found.
+As can be seen, the tool makes a second attempt at decoding the frame, this time ignoring the CRC check. As it is a
+tool meant for debugging, this approach is okay. It is not suitable anywhere but in debugging! Anyways, in this
+example, the frame was actually valid, but the device probably got confused by requests from multiple apps at once.
+Other times, the data is completely unusable.
 
-The tool then tries to work around invalid data and slices off the next few bytes from the buffer and tries again,
-yielding another checksum mismatch: It has been observed that sometimes, the device will return invalid data and
-slicing off the frame header allows a new `ReceiveFrame` instance to latch on to the next frame that was read from the
-buffer by the broken one. It would otherwise be missed. This is not a valid approach for real-world code that
-interfaces with the devices, but this is a debugging tool.
+There is a load of other quirks that the tool tries. One such quirk is that it assumes that a frame does not span
+across multiple packets. The protocol documentation makes no such statement, but at least for the devices it seems to
+be that way. Thus, if a frame is not complete when a segment ends and the next segment starts with the sequence
+``0x002b`` (which is the typical start-sequence of a device), the current frame is discarded and a new one starts
+consuming data. This does catch cases where the previous frame has an invalid length value, causing the parser to
+consume frame after frame, sometimes hundrets at once. A side-effekt is that if there is more than one frame after such
+a broken frame in the segment these are lost.
 
-Before looking at a valid result with this OID, let's look at another valid result that is in the registry:
-
-::
-
-   frame consumed 14 bytes, 46 remaining
-   Frame complete: <ReceiveFrame(cmd=RESPONSE, id=6388556c, address=0, data=00001441)>
-   Received reply:  261 battery.stack_software_version[0]        type: UINT32            value: 5185
-
-The OID is known, and the tool automatically decoded the value and shows the index, name, data type and value. (This
-does not yet work for complex types like :ref:`protocol-timeseries`).
-
-Let's look at the successfull response for our missing ID then:
-
-::
+Decoding unknown data
+=====================
+Suppose we have a frame that is valid, but the OID is not known yet. In this example the OID is actually in the
+registry, but let's pretend it is not and thus neither its name nor data type is known::
 
    frame consumed 14 bytes, 223 remaining
    Frame complete: <ReceiveFrame(cmd=RESPONSE, id=b403a7e6, address=0, data=47000000)>
    Could not find ID in registry
 
-Here we can see that the frame was parsed, but since it is unknown, the tool could not parse the data. The data field
-is printed above in hexadecimal notation as ``data=47000000``. This is the point where one can play around with the
-data by trying to convert it into something reasonable, let's take a small detour.
-
-Decoding unknown data
-=====================
 The above OID ``0xB403A7E6`` got a response payload of ``0x47000000``. Let's try to make sense from the data.
 
 To work with the data, it needs to be converted to a byte stream first. The easiest way is to use `bytearray.fromhex
@@ -372,3 +360,6 @@ This looks like a power of two. Search the app again for values that have such a
 In this example, the data type looks like a number. This is not always the case, for example a sequence of data that
 ends with a large number of ``00`` sequences typically contains a string (C uses NULL bytes to terminate strings).
 Some OIDs carry additional garbage data after the NULL byte, too, so this is something to look out for.
+
+When lookig up the OID in the registry, we find out that it is ``battery_placeholder[0].soc_update_since`` which has a
+data type of *float*, so the last try was correct and ``32768.0`` is the correct result.
