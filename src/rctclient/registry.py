@@ -92,6 +92,8 @@ class ObjectInfo:
                 self.sim_data = True
             elif self.response_data_type == DataType.STRING:
                 self.sim_data = 'ABCDEFG'
+            elif self.response_data_type == DataType.FLOAT:
+                self.sim_data = 0.0
             else:
                 self.sim_data = 0
         else:
