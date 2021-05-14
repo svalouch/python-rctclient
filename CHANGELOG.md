@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
   like it starts with a new frame (`0x002b`). This way invalid frames with very high length fields are caught earlier,
   only losing the rest of the segment instead of consuming potentially hundrets of frames only to error out on
   CRC-check.
+- Tool `csv2influx.py` had a wrong `--resolution` parameter set. It has been adapted to the one used in
+  `timeseries2csv.py`. Note that the table name is made up from the parameters value and changes with it (Issue #8).
 
 ## Release 0.0.2 - 2021-02-17
 

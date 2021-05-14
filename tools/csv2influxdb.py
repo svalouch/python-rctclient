@@ -37,7 +37,8 @@ def datetime_range(start: datetime, end: datetime, delta: timedelta):
 @click.option('-d', '--influx-db', type=str, default='rct', help='InfluxDB database name [rct]')
 @click.option('-u', '--influx-user', type=str, default='rct', help='InfluxDB user name [rct]')
 @click.option('-P', '--influx-pass', type=str, default='rct', help='InfluxDB password [rct]')
-@click.option('-r', '--resolution', type=click.Choice(['day', 'week', 'month', 'year']), default='day')
+@click.option('-r', '--resolution', type=click.Choice(['minutes', 'day', 'month', 'year']), default='day',
+              help='Resolution of the input data')
 def csv2influxdb(input: str, device_name: str, influx_host: str, influx_port: int, influx_db: str,
                  influx_user: str, influx_pass: str, resolution: str) -> None:
 
@@ -45,6 +46,9 @@ def csv2influxdb(input: str, device_name: str, influx_host: str, influx_port: in
     Reads a CSV file produced by `timeseries2csv.py` (requires headers) and pushes it to an InfluxDB v1.x database.
     This tool is intended to get you started and not a complete solution. It blindly trusts the timestamps and headers
     in the file. InfluxDB v2.x supports reading CSV natively using Flux and via the `influx write` command.
+
+    The `--resolution` flag defines the name of the table/measurement into which the results are written. The schema is
+    `history_${resolution}`.
     '''
     if input == '-':
         fin = sys.stdin

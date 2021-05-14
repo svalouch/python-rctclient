@@ -84,7 +84,7 @@ to avoid unexpected results such as shifting to the previous month.
                                      the script) [Europe/Berlin].
 
      -q, --quiet                     Supress output.
-     -r, --resolution [minutes|day|month|year]
+      -r, --resolution [minutes|day|month|year]
                                      Resolution to query [minutes].
      -c, --count INTEGER             Amount of time to go back, depends on
                                      --resolution, see --help.
@@ -155,24 +155,28 @@ it will be missing in the InfluxDB table, if rows are missing they will be missi
 ::
 
    Usage: csv2influxdb.py [OPTIONS]
-
+   
      Reads a CSV file produced by `timeseries2csv.py` (requires headers) and
      pushes it to an InfluxDB v1.x database. This tool is intended to get you
      started and not a complete solution. It blindly trusts the timestamps and
      headers in the file. InfluxDB v2.x supports reading CSV natively using
      Flux and via the `influx write` command.
-
+   
+     The `--resolution` flag defines the name of the table/measurement into
+     which the results are written. The schema is `history_${resolution}`.
+   
    Options:
      -i, --input FILE                Input CSV file (with headers). Supply "-" to
                                      read from standard input  [required]
-
+   
      -n, --device-name TEXT          Name of the device [rct1]
      -h, --influx-host TEXT          InfluxDB hostname [localhost]
      -p, --influx-port INTEGER       InfluxDB port [8086]
      -d, --influx-db TEXT            InfluxDB database name [rct]
      -u, --influx-user TEXT          InfluxDB user name [rct]
      -P, --influx-pass TEXT          InfluxDB password [rct]
-     -r, --resolution [day|week|month|year]
+     -r, --resolution [minutes|day|month|year]
+                                     Resolution of the input data
      --help                          Show this message and exit.
 
 Influx
