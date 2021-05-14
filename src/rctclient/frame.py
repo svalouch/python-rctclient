@@ -370,13 +370,13 @@ class ReceiveFrame:
 
             data_length -= self._frame_type
 
-            self._id = struct.unpack('>I', self._buffer[idx:idx + 4])[0]
-            # self._id_obj = find_by_id(self._id)
-            idx += 4
-
             if self._frame_type == FrameType.PLANT:
                 self._address = struct.unpack('>I', self._buffer[idx:idx + 4])[0]
                 idx += 4
+
+            self._id = struct.unpack('>I', self._buffer[idx:idx + 4])[0]
+            # self._id_obj = find_by_id(self._id)
+            idx += 4
 
             self._data = self._buffer[idx:idx + data_length]
             idx += data_length
