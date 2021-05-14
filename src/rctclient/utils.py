@@ -5,7 +5,14 @@
 
 import struct
 from datetime import datetime
-from typing import Dict, Tuple, Union
+from typing import overload, Dict, Tuple, Union
+
+try:
+    # Python 3.8+
+    from typing import Literal
+except ImportError:
+    # Python < 3.8
+    from typing_extensions import Literal
 
 from .types import DataType, EventEntry
 
@@ -34,6 +41,28 @@ def CRC16(data: Union[bytes, bytearray]) -> int:
     return crcsum
 
 
+@overload
+def encode_value(data_type: Literal[DataType.BOOL], value: bool) -> bytes:
+    ...
+
+
+@overload
+def encode_value(data_type: Union[Literal[DataType.INT8], Literal[DataType.UINT8], Literal[DataType.INT16],
+                                  Literal[DataType.UINT16], Literal[DataType.INT32], Literal[DataType.UINT32],
+                                  Literal[DataType.ENUM]], value: int) -> bytes:
+    ...
+
+
+@overload
+def encode_value(data_type: Literal[DataType.FLOAT], value: float) -> bytes:
+    ...
+
+
+@overload
+def encode_value(data_type: Literal[DataType.STRING], value: Union[str, bytes]) -> bytes:
+    ...
+
+
 # pylint: disable=too-many-branches,too-many-return-statements
 def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]) -> bytes:
     '''
@@ -46,11 +75,7 @@ def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]
     :raises ValueError: For string values, if the data type is not ``str`` or ``bytes``.
     '''
     if data_type == DataType.BOOL:
-        if value != 0:
-            value = True
-        else:
-            value = False
-        return struct.pack('>B', value)
+        return struct.pack('>B', bool(value))
     if data_type in (DataType.UINT8, DataType.ENUM):
         value = struct.unpack('<B', struct.pack('<b', value))[0]
         return struct.pack(">B", value)
@@ -76,6 +101,38 @@ def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]
         raise ValueError(f'Invalid value of type {type(value)} for string type encoding')
         # return struct.pack("s", value)
     raise KeyError('Undefinded or unknown type')
+
+
+@overload
+def decode_value(data_type: Literal[DataType.BOOL], data: bytes) -> bool:
+    ...
+
+
+@overload
+def decode_value(data_type: Union[Literal[DataType.INT8], Literal[DataType.UINT8], Literal[DataType.INT16],
+                                  Literal[DataType.UINT16], Literal[DataType.INT32], Literal[DataType.UINT32],
+                                  Literal[DataType.ENUM]], data: bytes) -> int:
+    ...
+
+
+@overload
+def decode_value(data_type: Literal[DataType.FLOAT], data: bytes) -> float:
+    ...
+
+
+@overload
+def decode_value(data_type: Literal[DataType.STRING], data: bytes) -> str:
+    ...
+
+
+@overload
+def decode_value(data_type: Literal[DataType.TIMESERIES], data: bytes) -> Tuple[datetime, Dict[datetime, int]]:
+    ...
+
+
+@overload
+def decode_value(data_type: Literal[DataType.EVENT_TABLE], data: bytes) -> Tuple[datetime, Dict[datetime, EventEntry]]:
+    ...
 
 
 # pylint: disable=too-many-branches,too-many-return-statements

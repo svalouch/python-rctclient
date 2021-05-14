@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 - Tool `read_pcap.py` prints the time stamp encoded in the dump with each packet.
 - `ReceiveFrame`: Add a flag to allow decoding the content of a frame even if the CRC checksum does not match. This is
   intended as a debug measure and not to be used in normal operation.
+- Added type hints for `decode_value` and `encode_value`. Requires `typing_extensions` for Python version 3.7 and
+  below.
 
 **Documentation**
 

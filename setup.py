@@ -26,8 +26,9 @@ setup(
     url='https://github.com/svalouch/python-rctclient/',
     python_requires='>=3.6',
 
-    # install_requires=[
-    # ],
+    install_requires=[
+        'typing_extensions ; python_version < "3.8"',
+    ],
 
     extras_require={
         'cli': [
