@@ -42,9 +42,9 @@ def csv2influxdb(input: str, device_name: str, influx_host: str, influx_port: in
                  influx_user: str, influx_pass: str, resolution: str) -> None:
 
     '''
-    Reads a CSV file produced by `timeseries2csv.py` (requires headers) and pushes it to an InfluxDB database. This
-    tool is intended to get you started and not a complete solution. It blindly trusts the timestamps and headers in
-    the file.
+    Reads a CSV file produced by `timeseries2csv.py` (requires headers) and pushes it to an InfluxDB v1.x database.
+    This tool is intended to get you started and not a complete solution. It blindly trusts the timestamps and headers
+    in the file. InfluxDB v2.x supports reading CSV natively using Flux and via the `influx write` command.
     '''
     if input == '-':
         fin = sys.stdin

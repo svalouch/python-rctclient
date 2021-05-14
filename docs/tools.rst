@@ -146,14 +146,21 @@ This tool takes the output CSV of the aforementioned tool `timeseries2csv.py` an
 tool trusts both the timestamps and the header lines and does not validate the data in any way. If a column is missing,
 it will be missing in the InfluxDB table, if rows are missing they will be missing from the table, too.
 
+.. note::
+
+   The tool was written with InfluxDB v1.x in mind. InfluxDB v2.x supports reading CSV natively using Flux or via the
+   ``influx write`` command. See `Write CSV data to InfluxDB
+   <https://docs.influxdata.com/influxdb/v2.0/write-data/developer-tools/csv/>`_.
+
 ::
 
    Usage: csv2influxdb.py [OPTIONS]
 
      Reads a CSV file produced by `timeseries2csv.py` (requires headers) and
-     pushes it to an InfluxDB database. This tool is intended to get you
+     pushes it to an InfluxDB v1.x database. This tool is intended to get you
      started and not a complete solution. It blindly trusts the timestamps and
-     headers in the file.
+     headers in the file. InfluxDB v2.x supports reading CSV natively using
+     Flux and via the `influx write` command.
 
    Options:
      -i, --input FILE                Input CSV file (with headers). Supply "-" to

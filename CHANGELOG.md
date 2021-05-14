@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
   intended as a debug measure and not to be used in normal operation.
 - Added type hints for `decode_value` and `encode_value`. Requires `typing_extensions` for Python version 3.7 and
   below.
+- Mention that `tools/csv2influx.py` is written with InfluxDB version 1.x in mind (Issue #10).
 
 **Documentation**
 
