@@ -14,8 +14,8 @@ import sys
 from datetime import datetime
 from scapy.utils import rdpcap  # type: ignore
 from scapy.layers.inet import TCP  # type: ignore
-from rctclient.exceptions import RctClientException
-from rctclient.frame import ReceiveFrame, FrameCRCMismatch
+from rctclient.exceptions import RctClientException, FrameCRCMismatch, InvalidCommand
+from rctclient.frame import ReceiveFrame
 from rctclient.registry import REGISTRY as R
 from rctclient.types import Command, DataType
 from rctclient.utils import decode_value
@@ -64,6 +64,7 @@ def main():
             # This way only on segment is lost.
             if frame and data_item[0:2] == b'\0+':
                 print('Frame not complete at segment start, starting new frame.')
+                print(f'command: {frame.command}, length: {frame.frame_length}, oid: 0x{frame.id:X}')
                 frame = None
 
             while len(data_item) > 0:
@@ -71,20 +72,21 @@ def main():
                     frame = ReceiveFrame()
                 try:
                     i = frame.consume(data_item)
-                except FrameCRCMismatch as exc:
+                except InvalidCommand as exc:
                     if frame.command == Command.EXTENSION:
                         print('Frame is an extension frame and we don\'t know how to parse it')
                     else:
-                        print(f'CRC mismatch, got 0x{exc.received_crc:X} but calculated '
-                              f'0x{exc.calculated_crc:X}. Buffer: {frame._buffer.hex()}')
+                        print(f'Invalid command 0x{exc.command:x} received after consuming {exc.consumed_bytes} bytes')
                     i = exc.consumed_bytes
+                except FrameCRCMismatch as exc:
+                    print(f'CRC mismatch, got 0x{exc.received_crc:X} but calculated '
+                          f'0x{exc.calculated_crc:X}. Buffer: {frame._buffer.hex()}')
+                    i = exc.consumed_bytes
+                except struct.error as exc:
+                    print(f'skipping 2 bytes ahead as struct could not unpack: {str(exc)}')
+                    i = 2
+                    frame = ReceiveFrame()
 
-                    # redo the decoding, but disable checksumming
-                    try:
-                        print('Attempting to decode while ignoring checksum')
-                        frame.decode(ignore_crc_mismatch=True)
-                    except Exception as exc:  # pylint: disable=broad-except  # *anything* can happen in this mode
-                        print(f'Exception {type(exc)} when debug-decoding frame: {str(exc)}')
                 data_item = data_item[i:]
                 print(f'frame consumed {i} bytes, {len(data_item)} remaining')
                 if frame.complete():
