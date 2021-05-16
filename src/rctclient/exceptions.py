@@ -7,21 +7,12 @@ class RctClientException(Exception):
     '''
     Base exception for this Python module.
     '''
-    pass
 
 
 class FrameError(RctClientException):
     '''
     Base exception for frame handling code.
     '''
-    pass
-
-
-class FrameNotComplete(FrameError):
-    '''
-    Used to denote that data was requested before the frame was completly received / parsed.
-    '''
-    pass
 
 
 class FrameCRCMismatch(FrameError):
@@ -37,4 +28,15 @@ class FrameCRCMismatch(FrameError):
         super().__init__(message)
         self.received_crc = received_crc
         self.calculated_crc = calculated_crc
+        self.consumed_bytes = consumed_bytes
+
+
+class InvalidCommand(FrameError):
+    '''
+    Indicates that the command is not supported. This means that ``Command`` does not contain a field for it, or that
+    it is the EXTENSION command that cannot be handled.
+    '''
+    def __init__(self, message: str, command: int, consumed_bytes: int = 0) -> None:
+        super().__init__(message)
+        self.command = command
         self.consumed_bytes = consumed_bytes

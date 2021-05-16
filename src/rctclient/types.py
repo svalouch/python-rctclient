@@ -23,17 +23,41 @@ class Command(IntEnum):
     READ = 0x01
     #: Write command
     WRITE = 0x02
-    #: Long write command
+    #: Long write command (use for variables > 251 bytes)
     LONG_WRITE = 0x03
     #: Response to a read or write command
     RESPONSE = 0x05
-    #: Long response
+    #: Long response (for variables > 251 bytes)
     LONG_RESPONSE = 0x06
+    # Periodic reading
+    # READ_PERIODICALLY = 0x08
+
+    #: Plant: Read command
+    PLANT_READ = READ | 0x40
+    #: Plant: Write command
+    PLANT_WRITE = WRITE | 0x40
+    #: Plant: Long write
+    PLANT_LONG_WRITE = LONG_WRITE | 0x40
+
     #: Extension
     EXTENSION = 0x3c
 
     #: Sentinel, do not use
     _NONE = 0xff
+
+    @staticmethod
+    def is_plant(command: 'Command') -> bool:
+        '''
+        Returns whether a command is for plant communication by checking if bit 6 is set.
+        '''
+        return bool(command & 0x40)
+
+    @staticmethod
+    def is_long(command: 'Command') -> bool:
+        '''
+        Returns whether a command is a long command.
+        '''
+        return command in (Command.LONG_WRITE, Command.LONG_RESPONSE, Command.PLANT_LONG_WRITE)
 
 
 class ObjectGroup(IntEnum):
@@ -88,6 +112,9 @@ class FrameType(IntEnum):
     STANDARD = 4
     #: Plant frame with ID and address
     PLANT = 8
+
+    #: Sentinel value, denotes unknown type.
+    _NONE = 0
 
 
 class DataType(IntEnum):

@@ -4,7 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## Release 0.0.3 - Unreleased
 
-**Features**
+### Breaking changes
+
+#### Receiving of frames has been completely reworked and simplified.
+
+It now uses a streaming approach where parts are decoded (almost) as soon as they are received instead of waiting for
+the entire frame to be received. This was done in order to allow for more flexible handling. The correctness of the
+data still cannot be determined before the entire frame has been received and the CRC16 checksum indicating correct
+reception.
+
+Except for invalid or unsupported (EXTENSION) commands, which will raise an exception and abort consumption, the
+properties of `ReceiveFrame` are now populated as soon as possible and no longer raise an exception when accessed
+before the frame is `complete()`.
+
+**Rationale**: The main use case is the detection and handling of frames with invalid length field. As the correctness
+of the frame could previously only be determined after it the advertised amount of data was received, frames that
+advertise an abnormal amount of data consumed tens or hundrets of valid frames with no way for the application to
+determin what was wrong. With the change, the application can now check for command and length, and abort the frame if
+it seems reasonable. For example when it detects that a frame that carries a `DataType.UINT8` field wants to consume
+100 bytes, which is far larger than what is needed to transport such a small type, it can abort the frame and skip past
+the beginning of the broken frame, as an alternative to keeping track of buffer contents over multiple tcp packets, in
+order to loop back once it is clear that the current frame is broken.
+
+### Features
 
 - Registry: Update with new OIDs from OpenWB.
 - Tool `read_pcap.py` now makes an attempt to decode frames that are complete but have an incorrect checksum to try to
@@ -15,14 +37,16 @@ All notable changes to this project will be documented in this file.
 - Added type hints for `decode_value` and `encode_value`. Requires `typing_extensions` for Python version 3.7 and
   below.
 - Mention that `tools/csv2influx.py` is written with InfluxDB version 1.x in mind (Issue #10).
+- Debugging `ReceiveFrame` now happens using the Python logging framework, using the ``rctclient.frame.ReceiveFrame``
+  logger, ``debug()`` has been removed.
 
-**Documentation**
+### Documentation
 
 - Disable Smartquotes (https://docutils.sourceforge.io/docs/user/smartquotes.html) which renders double-dash strings as
   a single hyphen character, and the CLI documentation can't be copy-pasted to a terminal anymore without manually
   editing it before submitting. (Issue #5).
 
-**Bugfixes**
+### Bugfixes
 
 - CLI: Fix incomplete example in `read-value` help output (Issue #5).
 - CLI: Change output for OIDs of type `UNKNOWN` to a hexdump. This works around the problem of some of them being
@@ -38,10 +62,12 @@ All notable changes to this project will be documented in this file.
   CRC-check.
 - Tool `csv2influx.py` had a wrong `--resolution` parameter set. It has been adapted to the one used in
   `timeseries2csv.py`. Note that the table name is made up from the parameters value and changes with it (Issue #8).
+- `ReceiveFrame` used to extract the address in plant frames at the wrong point in the buffer, effectively swapping
+  address and oid (PR #11).
 
 ## Release 0.0.2 - 2021-02-17
 
-**Features**
+### Features
 
 - New tool `timeseries2csv.py`: Reads time series data from the device and outputs CSV data for other tools to consume.
 - New tool `csv2influx.py`: Takes a CSV generated from `timeseries2csv.py` and writes it to an InfluxDB database.
@@ -59,7 +85,7 @@ All notable changes to this project will be documented in this file.
 - Tests: Some unit-tests were added for the encoding and decoding of frames.
 - Tests: Travis was set up to run the unit-tests.
 
-**Documentation**
+### Documentation
 
 - New tools `timeseries2csv.py` and `csv2influx.py` added.
 - Enum-mappings were added to the Registry documentation.
@@ -67,7 +93,7 @@ All notable changes to this project will be documented in this file.
 - Protocol: documentation of the basic protocol has been enhanced.
 - Added this changelog file and wired it into the documentation generation.
 
-**Bugfixes**
+### Bugfixes
 
 - Encoding/Decoding: `ENUM` data types are now correctly encoded/decoded the same as `UINT8`.
 - Simulator: Fix mocking of `BOOL` and `STRING`.

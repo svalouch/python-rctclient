@@ -3,10 +3,11 @@
 # Copyright 2020,2021 Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
+import logging
 import struct
 from typing import Union
 
-from .exceptions import FrameCRCMismatch, FrameNotComplete
+from .exceptions import FrameCRCMismatch, InvalidCommand
 from .types import Command, FrameType
 from .utils import CRC16
 
@@ -24,6 +25,9 @@ FRAME_LENGTH_LENGTH = 2
 FRAME_HEADER_WITH_LENGTH = FRAME_LENGTH_HEADER + FRAME_LENGTH_COMMAND + FRAME_LENGTH_LENGTH
 #: Length of the CRC16 checkum
 FRAME_LENGTH_CRC16 = 2
+
+#: Amount of bytes we need to have a command
+BUFFER_LEN_COMMAND = 2
 
 
 def make_frame(command: Command, id: int, payload: bytes = b'', address: int = 0,
@@ -176,13 +180,39 @@ class SendFrame:
 
 class ReceiveFrame:
     '''
-    Frame that is used to decode data received from the RCT device. This class can decode frames created via
-    :class:`~rctmon.rct_frame.SendFrame`, too. To use, create an instance and feed data to the `consume` function
-    until the frame was completly received. The `consume` function will return the amount of bytes it consumed.
+    Structure to receive and decode data received from the RCT device. Each instance can only consume a single frame
+    and a new one needs to be constructed to receive the next one. Frames are decoded incrementally, by feeding data
+    to the ``consume()`` function as it arrives over the network. The function returns the amount of bytes it consumed,
+    and it automatically stops consumption the frame has been received completely.
+
+    Use ``complete()`` to determin if the frame has been received in its entirety. Note that ``decode()`` still needs
+    to be called on the data to determin if it is value.
+
+    If ``auto_decode`` is set, the *consume()*-function will automatically call ``decode()`` uppon receiving a complete
+    frame. Unless the user choses to ignore CRC mismatches, it will raise an exception which contains the amount of
+    consumed bytes (raising will not allow normal returning of values). If ``decode()`` is called manually and the CRC
+    doesn't match, then the amount of consumed bytes is not set in the exception.
+
+    Some of the fields (such as command, id, frame_type, ...) are populated if enough data has arrived, even before the
+    checksum has been received and compared. Until ``is_complete`` is *True*, this data may not be valid, but it may
+    hint towards invalid frames (invalid length being the most common problem).
+
+    Most of the properties to access the content start working once enough data has been received to fill them, but the
+    data in them may not be valid until the frame has been received completely (``complete`` is *True*) and the CRC
+    checksum matches.
 
     To decode the payload, use :func:`~rctclient.utils.decode_value`.
 
-    :param frame_type: Type of frame (standard or plant).
+    .. note::
+
+       The parsing deviates from the protocol in the following ways:
+
+       * arbitrary data (instead of just a single ``0x00``) before a start byte is ignored.
+       * the distinction between normal and long commands is ignored. No error is reported if a frame that should be a
+         ``LONG_RESPONSE`` is received with ``RESPONSE``, for example.
+
+    :param auto_decode: Whether to call ``decode()`` from within ``consume()`` if the entire frame has been received.
+    :param ignore_crc_mismatch: When ``auto_decode`` is set, ``consume()`` passes this value to ``decode()``.
     '''
     # frame complete yet?
     _complete: bool
@@ -200,6 +230,10 @@ class ReceiveFrame:
     _buffer: bytearray
     # command
     _command: Command
+    # amount of bytes consumed
+    _consumed_bytes: int
+
+    _frame_header_length: int
 
     # ID, once decoded
     _id: int
@@ -208,20 +242,26 @@ class ReceiveFrame:
     # address for plant frames
     _address: int
 
-    _dbg: str
+    _auto_decode: bool
     _ignore_crc_mismatch: bool
 
-    def __init__(self, frame_type: FrameType = FrameType.STANDARD, ignore_crc_mismatch: bool = False) -> None:
+    def __init__(self, auto_decode: bool = True, ignore_crc_mismatch: bool = False) -> None:
+        self._log = logging.getLogger(__name__ + '.ReceiveFrame')
         self._complete = False
         self._crc_ok = False
         self._escaping = False
         self._crc16 = 0
         self._frame_length = 0
-        self._frame_type = frame_type
+        self._frame_type = FrameType._NONE
         self._command = Command._NONE
         self._buffer = bytearray()
-        self._dbg = ''
+        self._auto_decode = auto_decode
         self._ignore_crc_mismatch = ignore_crc_mismatch
+        self._consumed_bytes = 0
+
+        # set initially to the minimum length a frame header (i.e. everything before the data) can be.
+        # 1 byte start, 1 byte command, 1 byte length, no address, 4 byte ID
+        self._frame_header_length = 1 + 1 + 1 + 0 + 4
 
         # output data
         self._id = 0
@@ -233,11 +273,78 @@ class ReceiveFrame:
                f'data={self.data.hex()})>'
 
     @property
-    def debug(self) -> str:
+    def address(self) -> int:
         '''
-        Returns internal debug information gathered by consume().
+        Returns the address if the frame is a plant frame (``FrameType.PLANT``) or 0.
+
+        :raises FrameNotComplete: If the frame has not been fully received.
         '''
-        return self._dbg
+        return self._address
+
+    @property
+    def auto_decode(self) -> bool:
+        '''
+        Returns whether auto-decode is set.
+        '''
+        return self._auto_decode
+
+    @auto_decode.setter
+    def auto_decode(self, newval: bool) -> None:
+        '''
+        Changes the auto-decode setting.
+        '''
+        self._auto_decode = newval
+
+    @property
+    def command(self) -> Command:
+        '''
+        Returns the command.
+        '''
+        return self._command
+
+    def complete(self) -> bool:
+        '''
+        Returns whether the frame has been received completely. If this returns True, do **not** ``consume()`` any more
+        data with this instance, but instead create a new instance of this class for further consumption of data.
+        '''
+        return self._complete
+
+    @property
+    def consumed_bytes(self) -> int:
+        '''
+        Returns how many bytes the frame has consumed over its lifetime. This includes data that was consumed before
+        the start of a frame was found, so the amount reported here may be larger than the amount of data that makes up
+        the frame.
+        '''
+        return self._consumed_bytes
+
+    @property
+    def crc_ok(self) -> bool:
+        '''
+        Returns whether the CRC is valid. The value is only valid after a complete frame has arrived.
+        '''
+        return self._crc_ok
+
+    @property
+    def data(self) -> bytes:
+        '''
+        Returns the received data payload. This is empty if there has been no data received or the CRC did not match.
+        '''
+        return bytes(self._data)
+
+    @property
+    def frame_type(self) -> FrameType:
+        '''
+        Returns the frame type if enough data has been received to decode it, and ``FrameType._NONE`` otherwise.
+        '''
+        return self._frame_type
+
+    @property
+    def id(self) -> int:
+        '''
+        Returns the ID. If the frame has been received but the checksum does not match up, 0 is returned.
+        '''
+        return self._id
 
     @property
     def ignore_crc_mismatch(self) -> bool:
@@ -254,60 +361,15 @@ class ReceiveFrame:
         self._ignore_crc_mismatch = newval
 
     @property
-    def id(self) -> int:
+    def frame_length(self) -> int:
         '''
-        Returns the ID. If the frame has been received but the checksum does not match up, 0 is returned.
+        Returns the length of the frame. This is ``0`` until the header containing the length field has been received.
+        Note that this is not the length field of the protocol but rather the length of the frame in its entirety,
+        from start byte to the end of the CRC.
+        '''
+        return self._frame_length
 
-        :raises FrameNotComplete: If the frame has not been fully received.
-        '''
-        if not self._complete:
-            raise FrameNotComplete('The frame is incomplete')
-        return self._id
-
-    @property
-    def data(self) -> bytes:
-        '''
-        Returns the received data payload. This is empty if there has been no data received or the CRC did not match.
-
-        :raises FrameNotComplete: If the frame has not been fully received.
-        '''
-        if not self._complete:
-            raise FrameNotComplete('The frame is incomplete')
-        return bytes(self._data)
-
-    @property
-    def address(self) -> int:
-        '''
-        Returns the address if the frame is a plant frame (``FrameType.PLANT``) or 0.
-
-        :raises FrameNotComplete: If the frame has not been fully received.
-        '''
-        if not self._complete:
-            raise FrameNotComplete('The frame is incomplete')
-        return self._address
-
-    @property
-    def command(self) -> Command:
-        '''
-        Returns the command.
-        '''
-        return self._command
-
-    @property
-    def crc_ok(self) -> bool:
-        '''
-        Returns whether the CRC is valid. The value is only valid after a complete frame has arrived.
-        '''
-        return self._crc_ok
-
-    def complete(self) -> bool:
-        '''
-        Returns whether the frame has been received completely. If this returns True, do **not** ``consume()`` any more
-        data with this instance, but instead create a new instance of this class for further consumption of data.
-        '''
-        return self._complete
-
-    def consume(self, data: Union[bytes, bytearray]) -> int:
+    def consume(self, data: Union[bytes, bytearray]) -> int:  # pylint: disable=too-many-branches,too-many-statements
         '''
         Consumes data until the frame is complete. Returns the number of consumed bytes.
 
@@ -315,115 +377,90 @@ class ReceiveFrame:
         :return: The amount of bytes consumed from the input data.
         '''
 
-        # print(f'consume({len(data)} bytes: {data.hex()})')
         i = 0
-        for d in data:
+        for d_byte in data:  # pylint: disable=too-many-nested-blocks  # ugly parser is ugly
+            self._consumed_bytes += 1
             i += 1
-            c = bytes([d])
-            self._dbg += f'read: {c.hex()}\n'
+            c = bytes([d_byte])  # pylint: disable=invalid-name
+            self._log.debug('read: 0x%s', c.hex())
 
             # sync to start_token
             if len(self._buffer) == 0:
-                self._dbg += '      buffer empty\n'
+                self._log.debug('      buffer empty')
                 if c == START_TOKEN:
-                    self._dbg += '      start token found\n'
+                    self._log.debug('      start token found')
                     self._buffer += c
                 continue
 
             if self._escaping:
-                self._dbg += '      resetting escape\n'
+                self._log.debug('      resetting escape')
                 self._escaping = False
             else:
                 if c == ESCAPE_TOKEN:
-                    self._dbg += '      setting escape\n'
+                    self._log.debug('      setting escape')
                     # set the escape mode and ignore the byte at hand.
                     self._escaping = True
                     continue
 
             self._buffer += c
-            self._dbg += '      adding to buffer\n'
+            self._log.debug('      adding to buffer')
 
-            # when enough data has been received to construct a frame, decode the length and check for completeness
-            if len(self._buffer) >= FRAME_HEADER_WITH_LENGTH:
-                self._dbg += '      buffer length >= header with length\n'
-                if len(self._buffer) == FRAME_HEADER_WITH_LENGTH:
-                    self._dbg += '      buffer length == header with length\n'
-                    cmd = struct.unpack('B', bytes([self._buffer[1]]))[0]
-                    self._dbg += f'      cmd: {cmd}\n'
-                    if cmd in (Command.LONG_RESPONSE, cmd == Command.LONG_WRITE):
-                        self._frame_length = struct.unpack('>H', self._buffer[2:4])[0] + 2  # 2 byte length MSBF
-                    else:
-                        self._frame_length = struct.unpack('>B', bytes([self._buffer[2]]))[0] + 1  # 1 byte length
+            blen = len(self._buffer)  # cache
 
-                    self._frame_length += FRAME_LENGTH_HEADER + FRAME_LENGTH_COMMAND + FRAME_LENGTH_CRC16
-                    self._dbg += f'      frame length: {self._frame_length}\n'
+            if blen == BUFFER_LEN_COMMAND:
+                cmd = struct.unpack('B', bytes([self._buffer[1]]))[0]
+                try:
+                    self._command = Command(cmd)
+                except ValueError as exc:
+                    raise InvalidCommand(str(exc), cmd, i) from exc
+
+                if self._command == Command.EXTENSION:
+                    raise InvalidCommand('EXTENSION is not supported', cmd, i)
+
+                self._log.debug('      have command: 0x%x, is_plant: %s', self._command,
+                                Command.is_plant(self._command))
+                if Command.is_plant(self._command):
+                    self._frame_header_length += 4
+                    self._log.debug('      plant frame, extending header length by 4 to %d', self._frame_header_length)
+                if Command.is_long(self._command):
+                    self._frame_header_length += 1
+                    self._log.debug('      long cmd, extending header length by 1 to %d', self._frame_header_length)
+            elif blen == self._frame_header_length:
+                self._log.debug('      buffer length %d indicates that it contains entire header', blen)
+                if Command.is_long(self._command):
+                    data_length = struct.unpack('>H', self._buffer[2:4])[0]
+                    address_idx = 4
+                else:
+                    data_length = struct.unpack('>B', bytes([self._buffer[2]]))[0]
+                    address_idx = 3
+
+                if Command.is_plant(self._command):
+                    # length field includes address and id length == 8 bytes
+                    self._frame_length = (self._frame_header_length - 8) + data_length + FRAME_LENGTH_CRC16
+                    self._address = struct.unpack('>I', self._buffer[address_idx:address_idx + 4])[0]
+                    oid_idx = address_idx + 4
 
                 else:
-                    self._dbg += f'      buffer length {len(self._buffer)} > header with length\n'
-                    if len(self._buffer) == self._frame_length:
-                        self._dbg += '      buffer contains full frame\n'
-                        self._complete = True
-                        self._dbg += f'buffer: {self._buffer.hex()}\n'
-                        try:
-                            self.decode(self._ignore_crc_mismatch)
-                        except FrameCRCMismatch as exc:
-                            exc.consumed_bytes = i
-                            raise
-                        return i
+                    # length field includes id length == 4 bytes
+                    self._frame_length = (self._frame_header_length - 4) + data_length + FRAME_LENGTH_CRC16
+                    oid_idx = address_idx
+
+                self._id = struct.unpack('>I', self._buffer[oid_idx:oid_idx + 4])[0]
+                self._log.debug('      oid index: %d, OID: 0x%X', oid_idx, self._id)
+
+            elif self._frame_length > 0 and blen == self._frame_length:
+                self._log.debug('      buffer contains full frame')
+                self._log.debug('      buffer: %s', self._buffer.hex())
+                self._complete = True
+
+                self._crc16 = struct.unpack('>H', self._buffer[-2:])[0]
+                calc_crc16 = CRC16(self._buffer[len(START_TOKEN):-FRAME_LENGTH_CRC16])
+                self._crc_ok = self._crc16 == calc_crc16
+                self._log.debug('      crc: %04x calculated: %04x match: %s', self._crc16, calc_crc16, self._crc_ok)
+
+                self._data = self._buffer[self._frame_header_length:-FRAME_LENGTH_CRC16]
+
+                if not self._crc_ok and not self._ignore_crc_mismatch:
+                    raise FrameCRCMismatch('CRC mismatch', self._crc16, calc_crc16, i)
+                return i
         return i
-
-    def decode(self, ignore_crc_mismatch: bool = False):
-        '''
-        Decodes a received stream. This function is automatically called by :func:`consume` once a complete frame has
-        been received.
-
-        :param ignore_crc_mismatch: Whether to ignore CRC mismatches.
-
-           .. warning::
-
-              If set, no exception is raised when the checksum doesn't match, and the code tries to decode the data as
-              if it was valid. It may not work, and the function may blow up in various ways as a result of this.
-
-              This is meant for debugging only!
-
-        :raises FrameCRCMismatch: If the CRC checksum in the received data does not match up with the calculated
-           values.
-        '''
-        # the crc16 checksum is 2 bytes at the end of the stream
-        self._crc16 = struct.unpack('>H', self._buffer[-2:])[0]
-        # first byte and crc is not part of the calculation:
-        calc_crc16 = CRC16(self._buffer[FRAME_LENGTH_HEADER:-FRAME_LENGTH_CRC16])
-
-        self._crc_ok = self._crc16 == calc_crc16
-        if self._crc_ok or ignore_crc_mismatch:
-
-            command = struct.unpack('>B', bytes([self._buffer[1]]))[0]
-            self._command = Command(command)
-            if self._command == Command.LONG_RESPONSE or self._command == Command.LONG_WRITE:
-                data_length = struct.unpack('>H', self._buffer[2:4])[0]  # 2 byte length MSBF
-                idx = 4
-            else:
-                data_length = struct.unpack('>B', bytes([self._buffer[2]]))[0]  # 1 byte length
-                idx = 3
-
-            data_length -= self._frame_type
-
-            self._id = struct.unpack('>I', self._buffer[idx:idx + 4])[0]
-            # self._id_obj = find_by_id(self._id)
-            idx += 4
-
-            if self._frame_type == FrameType.PLANT:
-                self._address = struct.unpack('>I', self._buffer[idx:idx + 4])[0]
-                idx += 4
-
-            self._data = self._buffer[idx:idx + data_length]
-            idx += data_length
-        else:
-            # This is NOT reached if self._ignore_crc_mismatch is set
-            raise FrameCRCMismatch('CRC mismatch', self._crc16, calc_crc16)
-
-    def is_complete(self) -> bool:
-        '''
-        Returns whether the frame has been fully received and decoded.
-        '''
-        return self._complete and self._crc_ok
