@@ -34,7 +34,8 @@ log = logging.getLogger('rctclient.cli')
 @click.pass_context
 @click.version_option()
 @click.option('-d', '--debug', is_flag=True, default=False, help='Enable debug output')
-def cli(ctx, debug: bool) -> None:
+@click.option('--frame-debug', is_flag=True, default=False, help='Enables frame debugging (requires --debug)')
+def cli(ctx, debug: bool, frame_debug: bool) -> None:
     '''
     rctclient toolbox. Please help yourself with the subcommands.
     '''
@@ -46,6 +47,8 @@ def cli(ctx, debug: bool) -> None:
             level=logging.DEBUG,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         )
+        if not frame_debug:
+            logging.getLogger('rctclient.frame.ReceiveFrame').setLevel(logging.INFO)
     log.info('rctclient CLI starting')
 
 
@@ -108,12 +111,12 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     response is returned on stdout. Without "verbose" set, the value is returned on standard out, otherwise more
     information about the object is printed with the value.
 
-    Specify either "<id>" or "<name>". The ID must be in the form '0xABCD', the name must exactly match the name of a
-    known object ID including the group prefix.
+    Specify either "--id <id>" or "--name <name>". The ID must be in th decimal notation, such as "0x959930BF", the
+    name must exactly match the name of a known object ID such as "battery.soc".
 
     The "<name>" option supports shell autocompletion (if installed).
 
-    If "debug" is set, log output is sent to stderr, so the value can be read from stdout while still catching
+    If "--debug" is set, log output is sent to stderr, so the value can be read from stdout while still catching
     everything else on stderr.
 
     Timeseries data and the event table will be queried using the current time. Note that the device may send an

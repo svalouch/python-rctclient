@@ -39,6 +39,7 @@ order to loop back once it is clear that the current frame is broken.
 - Mention that `tools/csv2influx.py` is written with InfluxDB version 1.x in mind (Issue #10).
 - Debugging `ReceiveFrame` now happens using the Python logging framework, using the ``rctclient.frame.ReceiveFrame``
   logger, ``debug()`` has been removed.
+- New CLI flag ``--frame-debug``, which enables debug output for frame parsing if ``--debug`` is set as well.
 
 ### Documentation
 
