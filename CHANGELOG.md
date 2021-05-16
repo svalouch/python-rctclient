@@ -26,6 +26,8 @@ it seems reasonable. For example when it detects that a frame that carries a `Da
 the beginning of the broken frame, as an alternative to keeping track of buffer contents over multiple tcp packets, in
 order to loop back once it is clear that the current frame is broken.
 
+The exception `FrameNotComplete` was removed as it was not used anymore, and `InvalidCommand` was added in its place.
+
 ### Features
 
 - Registry: Update with new OIDs from OpenWB.
@@ -36,10 +38,12 @@ order to loop back once it is clear that the current frame is broken.
   intended as a debug measure and not to be used in normal operation.
 - Added type hints for `decode_value` and `encode_value`. Requires `typing_extensions` for Python version 3.7 and
   below.
-- Mention that `tools/csv2influx.py` is written with InfluxDB version 1.x in mind (Issue #10).
+- Mention that tool `csv2influx.py` is written with InfluxDB version 1.x in mind (Issue #10).
 - Debugging `ReceiveFrame` now happens using the Python logging framework, using the ``rctclient.frame.ReceiveFrame``
   logger, ``debug()`` has been removed.
 - New CLI flag ``--frame-debug``, which enables debug output for frame parsing if ``--debug`` is set as well.
+- Tool `timeseries2csv.py` can now output different header formats (none, the original header, and InfluxDB 2.x
+  compatible headers). The command line switch ``--no-headers`` was replaced by ``--header-format``.
 
 ### Documentation
 
@@ -54,7 +58,7 @@ order to loop back once it is clear that the current frame is broken.
   marked as being strings when instead they carry complex data that can't easily be represented as textual data.
 - Registry: Mark some OIDs that are known to contain complex data that hasn't been decoded yet as being of type
   `UNKNOWN` instead of `STRING`. Most of them cannot be decoded to a valid string most of the time, and even then the
-  content would not make sense. This change allows users to filter these our, e.g. when printing their content.
+  content would not make sense. This change allows users to filter these out, e.g. when printing their content.
 - Simulator: If multiple requests were sent in the same TCP paket, the simulator returned the answer for the first
   frame that it got for all of the requests in the buffer.
 - Tool `read_pcap.py` now drops a frame if it ran over the segment boundary (next tcp packet) if the new segment looks

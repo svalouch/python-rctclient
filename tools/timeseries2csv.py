@@ -56,8 +56,8 @@ def cprint(text: str) -> None:
 @click.option('-p', '--port', type=int, default=8899, help='Port on the host to query [8899]')
 @click.option('-o', '--output', type=click.Path(writable=True, dir_okay=False, allow_dash=True), required=False,
               help='Output file (use "-" for standard output), omit for "data_<resolution>_<date>.csv"')
-@click.option('-H', '--no-headers', type=bool, is_flag=True, default=False, help='When specified, does not output the '
-                                                                                 'column names as first row')
+@click.option('-H', '--header-format', type=click.Choice(['simple', 'influx2', 'none'], case_sensitive=False),
+              default='simple', help='Header format [simple]')
 @click.option('--time-zone', type=str, default='Europe/Berlin', help='Timezone of the device (not the host running the'
                                                                      ' script) [Europe/Berlin].')
 @click.option('-q', '--quiet', type=bool, is_flag=True, default=False, help='Supress output.')
@@ -66,7 +66,7 @@ def cprint(text: str) -> None:
 @click.option('-c', '--count', type=int, default=1, help='Amount of time to go back, depends on --resolution, see '
               '--help.')
 @click.argument('DAY_BEFORE_TODAY', type=int)
-def timeseries2csv(host: str, port: int, output: Optional[str], no_headers: bool, time_zone: str, quiet: bool,
+def timeseries2csv(host: str, port: int, output: Optional[str], header_format: bool, time_zone: str, quiet: bool,
                    resolution: str, count: int, day_before_today: int) -> None:
 
     '''
@@ -74,8 +74,12 @@ def timeseries2csv(host: str, port: int, output: Optional[str], no_headers: bool
     independantly, it is designed to be run from a cronjob or as part of a script.
 
     The output format is CSV.  If --output is not given, then a name is constructed from the resolution and the current
-    date.  Specify "-" to have the tool print the table to standard output, for use with other tools.  Unless
-    --no-headers is set, the first line contains the column headers.
+    date.  Specify "-" to have the tool print the table to standard output, for use with other tools.
+
+    Use --header-format to select the format of the first lines. If "none", no headers will be included. With "simple",
+    a single line will be included naming all the columns. This is the preferred format for "csv2influx.py" as well as
+    for importing into spreadsheet applications. Specify "influx2" to have a set of headers added that are meant for
+    use with InfluxDB 2.x "influx write" command. See the documentation for details.
 
     Data is queried into the past, by specifying the latest point in time for which data should be queried.  Thus,
     DAYS_BEFORE_TODAY selects the last second of the day that is the given amount in the past.  0 therefor is the
@@ -295,11 +299,16 @@ def timeseries2csv(host: str, port: int, output: Optional[str], no_headers: bool
         filedes, filepath = mkstemp(dir=os.path.dirname(output), text=True)
         fd = open(filedes, 'wt')
 
+    if header_format == 'influx2':
+        fd.write(f'#constant measurement,{resolution}\n')
+        fd.write('#datatype dateTime,field,field,field,field,field,field,field,field,field,field,field,field,field,'
+                 'field,field,field,field,field,field,field,field,field\n')
+
     writer = csv.writer(fd)
 
     names = [oid.name.replace(name_prefix, '').replace('_log_ts', '') for oid in oids]
 
-    if not no_headers:
+    if header_format == 'simple':
         writer.writerow(['timestamp'] + names)
 
     for bts, btval in datetable.items():

@@ -36,7 +36,13 @@ to avoid unexpected results such as shifting to the previous month.
      The output format is CSV.  If --output is not given, then a name is
      constructed from the resolution and the current date.  Specify "-" to have
      the tool print the table to standard output, for use with other tools.
-     Unless --no-headers is set, the first line contains the column headers.
+
+     Use --header-format to select the format of the first lines. If "none", no
+     headers will be included. With "simple", a single line will be included
+     naming all the columns. This is the preferred format for "csv2influx.py"
+     as well as for importing into spreadsheet applications. Specify "influx2"
+     to have a set of headers added that are meant for use with InfluxDB 2.x
+     "influx write" command. See the documentation for details.
 
      Data is queried into the past, by specifying the latest point in time for
      which data should be queried.  Thus, DAYS_BEFORE_TODAY selects the last
@@ -77,14 +83,13 @@ to avoid unexpected results such as shifting to the previous month.
      -o, --output FILE               Output file (use "-" for standard output),
                                      omit for "data_<resolution>_<date>.csv"
 
-     -H, --no-headers                When specified, does not output the column
-                                     names as first row
-
+     -H, --header-format [simple|influx2|none]
+                                     Header format [simple]
      --time-zone TEXT                Timezone of the device (not the host running
                                      the script) [Europe/Berlin].
 
      -q, --quiet                     Supress output.
-      -r, --resolution [minutes|day|month|year]
+     -r, --resolution [minutes|day|month|year]
                                      Resolution to query [minutes].
      -c, --count INTEGER             Amount of time to go back, depends on
                                      --resolution, see --help.
@@ -121,7 +126,10 @@ Finally, if a filename is passed, this file will be used.
 
 Files are written atomically, to prevent incomplete files from being present while the tool works.
 
-Specifying ``--no-headers`` causes the first line containing the column headers to be omitted.
+Specifying ``--header-format=none`` causes the headers to be omitted from the output, while the default
+``--header-format=simple`` includes a standard header-line suitable for ``csv2influx.py`` or generic spreadsheet
+applications. Use ``--header-format=influx2`` for directly importing data to an InfluxDB 2.x using the ``influxdb
+write`` command.
 
 Handling of incomplete data
 ===========================
@@ -140,6 +148,40 @@ If the device sends invalid data (incomplete dataset with valid CRC or data with
 until valid data is received. Likewise, if the device sends frames that are not of interest (as may occur when another
 client such as the app communicates with it at the same time), the OID of that frame is logged and ignored.
 
+Importing into InfluxDB 2.x
+===========================
+InfluxDB 2.x includes builtin support for reading CSV files. For earlier versions, see the tool ``csv2influxdb.py``
+below.
+
+There are two ways to import the data:
+
+* Let ``timeseries2csv.py`` specify the most important header information by calling it with
+  ``--header-format=influx2``
+* Use whatever header-format and overwrite it on the command line.
+
+If the former option was chosen, the first line of the CSV file specifies the measurement name based on the
+``--resolution``. The second line tells ``influx write`` how it should interpret the rows. The first one is a
+``dateTime``, all the others are fields.
+
+The latter option requires specifying the headers on the command line. It also allows overwriting the headers in the
+file should they exist, e.g. the measurement specification.
+
+Connection options have been omitted from the commands, as there is a number of ways to specify.
+
+In order to import a CSV file with ``--header-format=none``::
+
+   influx write -b <bucketname> -o <orgname> -f <input file.csv> \
+       --header "#constant measurement,minutes" \
+       --header "#datatype dateTime,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field,field"
+
+If importing a CSV file with ``--header-format=simple`` (default), then add ``--skipHeader 1`` to the command above.
+
+To overwrite the measurement name in ``--header-format=influx2``, skip the first line and specify the ``#constant``
+header like so::
+
+   influx write -b <bucketname> -o <orgname> -f <input file.csv> \
+       --skipHeader 1 --header "#constant measurement,inverter_1_minutes"
+
 csv2influxdb.py
 ***************
 This tool takes the output CSV of the aforementioned tool `timeseries2csv.py` and sends it to an InfluxDB database. The
@@ -155,20 +197,20 @@ it will be missing in the InfluxDB table, if rows are missing they will be missi
 ::
 
    Usage: csv2influxdb.py [OPTIONS]
-   
+
      Reads a CSV file produced by `timeseries2csv.py` (requires headers) and
      pushes it to an InfluxDB v1.x database. This tool is intended to get you
      started and not a complete solution. It blindly trusts the timestamps and
      headers in the file. InfluxDB v2.x supports reading CSV natively using
      Flux and via the `influx write` command.
-   
+
      The `--resolution` flag defines the name of the table/measurement into
      which the results are written. The schema is `history_${resolution}`.
-   
+
    Options:
      -i, --input FILE                Input CSV file (with headers). Supply "-" to
                                      read from standard input  [required]
-   
+
      -n, --device-name TEXT          Name of the device [rct1]
      -h, --influx-host TEXT          InfluxDB hostname [localhost]
      -p, --influx-port INTEGER       InfluxDB port [8086]
