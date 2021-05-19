@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Breaking changes
 
-#### Receiving of frames has been completely reworked and simplified.
+#### Receiving of frames has been completely reworked
 
 It now uses a streaming approach where parts are decoded (almost) as soon as they are received instead of waiting for
 the entire frame to be received. This was done in order to allow for more flexible handling. The correctness of the
@@ -27,6 +27,12 @@ the beginning of the broken frame, as an alternative to keeping track of buffer 
 order to loop back once it is clear that the current frame is broken.
 
 The exception `FrameNotComplete` was removed as it was not used anymore, and `InvalidCommand` was added in its place.
+Furthermore, if the parser detects that it overshot (which hints at a programming error), it raises
+`FrameLengthExceeded`, enabling calling code to abort the frame.
+
+### Known issues
+
+- Time stamps in the output of tool `timeseries2csv.py` are off by one or two (during DST) hours.
 
 ### Features
 
@@ -40,7 +46,7 @@ The exception `FrameNotComplete` was removed as it was not used anymore, and `In
   below.
 - Mention that tool `csv2influx.py` is written with InfluxDB version 1.x in mind (Issue #10).
 - Debugging `ReceiveFrame` now happens using the Python logging framework, using the ``rctclient.frame.ReceiveFrame``
-  logger, ``debug()`` has been removed.
+  logger, the ``debug()`` method has been removed.
 - New CLI flag ``--frame-debug``, which enables debug output for frame parsing if ``--debug`` is set as well.
 - Tool `timeseries2csv.py` can now output different header formats (none, the original header, and InfluxDB 2.x
   compatible headers). The command line switch ``--no-headers`` was replaced by ``--header-format``.
