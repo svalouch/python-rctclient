@@ -7,7 +7,7 @@ import logging
 import struct
 from typing import Union
 
-from .exceptions import FrameCRCMismatch, InvalidCommand
+from .exceptions import FrameCRCMismatch, InvalidCommand, FrameLengthExceeded
 from .types import Command, FrameType
 from .utils import CRC16
 
@@ -185,21 +185,21 @@ class ReceiveFrame:
     to the ``consume()`` function as it arrives over the network. The function returns the amount of bytes it consumed,
     and it automatically stops consumption the frame has been received completely.
 
-    Use ``complete()`` to determin if the frame has been received in its entirety. Note that ``decode()`` still needs
-    to be called on the data to determin if it is value.
+    Use ``complete()`` to determin if the frame has been received in its entirety.
 
-    If ``auto_decode`` is set, the *consume()*-function will automatically call ``decode()`` uppon receiving a complete
-    frame. Unless the user choses to ignore CRC mismatches, it will raise an exception which contains the amount of
-    consumed bytes (raising will not allow normal returning of values). If ``decode()`` is called manually and the CRC
-    doesn't match, then the amount of consumed bytes is not set in the exception.
+    When the frame has been received completely (``complete()`` returns *True*), it extracts the CRC and compares it
+    with its own calculated checksum. Unless ``ignore_crc_match`` is set, a
+    :class:`~rctclient.exceptions.FrameCRCMismatch` is raised if the checksums do **not** match.
+
+    If the command encoded in the frame is not supported or invalid, a :class:`~rctclient.exceptions.InvalidCommand`
+    will be raised unconditionally during consumption.
+
+    Both exceptions carry the amount of consumed bytes in a field as to allow users to remove the already consumed
+    bytes from their input buffer in order to start consumption with a new ReceiveFrame instance for the next frame.
 
     Some of the fields (such as command, id, frame_type, ...) are populated if enough data has arrived, even before the
-    checksum has been received and compared. Until ``is_complete`` is *True*, this data may not be valid, but it may
-    hint towards invalid frames (invalid length being the most common problem).
-
-    Most of the properties to access the content start working once enough data has been received to fill them, but the
-    data in them may not be valid until the frame has been received completely (``complete`` is *True*) and the CRC
-    checksum matches.
+    checksum has been received and compared. Until ``complete()`` returns *True*, this data may not be valid, but it
+    may hint towards invalid frames (invalid length being the most common problem).
 
     To decode the payload, use :func:`~rctclient.utils.decode_value`.
 
@@ -211,8 +211,8 @@ class ReceiveFrame:
        * the distinction between normal and long commands is ignored. No error is reported if a frame that should be a
          ``LONG_RESPONSE`` is received with ``RESPONSE``, for example.
 
-    :param auto_decode: Whether to call ``decode()`` from within ``consume()`` if the entire frame has been received.
-    :param ignore_crc_mismatch: When ``auto_decode`` is set, ``consume()`` passes this value to ``decode()``.
+    :param ignore_crc_mismatch: If not set, no exception is raised when the CRC checksums do **not** match. Use
+    ``crc_ok`` to figure out if they matched.
     '''
     # frame complete yet?
     _complete: bool
@@ -242,10 +242,9 @@ class ReceiveFrame:
     # address for plant frames
     _address: int
 
-    _auto_decode: bool
     _ignore_crc_mismatch: bool
 
-    def __init__(self, auto_decode: bool = True, ignore_crc_mismatch: bool = False) -> None:
+    def __init__(self, ignore_crc_mismatch: bool = False) -> None:
         self._log = logging.getLogger(__name__ + '.ReceiveFrame')
         self._complete = False
         self._crc_ok = False
@@ -255,7 +254,6 @@ class ReceiveFrame:
         self._frame_type = FrameType._NONE
         self._command = Command._NONE
         self._buffer = bytearray()
-        self._auto_decode = auto_decode
         self._ignore_crc_mismatch = ignore_crc_mismatch
         self._consumed_bytes = 0
 
@@ -280,20 +278,6 @@ class ReceiveFrame:
         :raises FrameNotComplete: If the frame has not been fully received.
         '''
         return self._address
-
-    @property
-    def auto_decode(self) -> bool:
-        '''
-        Returns whether auto-decode is set.
-        '''
-        return self._auto_decode
-
-    @auto_decode.setter
-    def auto_decode(self, newval: bool) -> None:
-        '''
-        Changes the auto-decode setting.
-        '''
-        self._auto_decode = newval
 
     @property
     def command(self) -> Command:
@@ -445,6 +429,8 @@ class ReceiveFrame:
                     self._frame_length = (self._frame_header_length - 4) + data_length + FRAME_LENGTH_CRC16
                     oid_idx = address_idx
 
+                self._log.debug('      data_length: %d bytes, frame_length: %d', data_length, self._frame_length)
+
                 self._id = struct.unpack('>I', self._buffer[oid_idx:oid_idx + 4])[0]
                 self._log.debug('      oid index: %d, OID: 0x%X', oid_idx, self._id)
 
@@ -463,4 +449,6 @@ class ReceiveFrame:
                 if not self._crc_ok and not self._ignore_crc_mismatch:
                     raise FrameCRCMismatch('CRC mismatch', self._crc16, calc_crc16, i)
                 return i
+            elif self._frame_length > 0 and blen > self._frame_length:
+                raise FrameLengthExceeded('Frame consumed more than it should', i)
         return i
