@@ -20,7 +20,7 @@ except ImportError:
     print('"click" not found, commands unavailable', file=sys.stderr)
     sys.exit(1)
 
-from .exceptions import FrameCRCMismatch
+from .exceptions import FrameCRCMismatch, FrameLengthExceeded, InvalidCommand
 from .frame import ReceiveFrame, make_frame
 from .registry import REGISTRY as R
 from .simulator import run_simulator
@@ -78,19 +78,19 @@ def receive_frame(sock: socket.socket, timeout: int = 2) -> ReceiveFrame:
         try:
             ready_read, _, _ = select.select([sock], [], [], timeout)
         except select.error as exc:
-            log.error(f'Error during receive: select returned an error: {str(exc)}')
+            log.error('Error during receive: select returned an error: %s', str(exc))
             raise
 
         if ready_read:
             buf = sock.recv(1024)
             if len(buf) > 0:
-                log.debug(f'Received {len(buf)} bytes: {buf.hex()}')
+                log.debug('Received %d bytes: %s', len(buf), buf.hex())
                 i = frame.consume(buf)
-                log.debug(f'Frame consumed {i} bytes')
+                log.debug('Frame consumed %d bytes', i)
                 if frame.complete():
                     if len(buf) > i:
-                        log.warning(f'Frame complete, but buffer still contains {len(buf) - i} bytes')
-                        log.debug(f'Leftover bytes: {buf[i:].hex()}')
+                        log.warning('Frame complete, but buffer still contains %d bytes', len(buf) - i)
+                        log.debug('Leftover bytes: %s', buf[i:].hex())
                     return frame
     raise TimeoutError
 
@@ -144,17 +144,17 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     try:
         if id:
             real_id = int(id[2:], 16)
-            log.debug(f'Parsed ID: 0x{real_id:X}')
+            log.debug('Parsed ID: 0x%X', real_id)
             oinfo = R.get_by_id(real_id)
-            log.debug(f'Object info by ID: {oinfo}')
+            log.debug('Object info by ID: %s', oinfo)
         elif name:
             oinfo = R.get_by_name(name)
-            log.debug(f'Object info by name: {oinfo}')
+            log.debug('Object info by name: %s', oinfo)
     except KeyError:
         log.error('Could not find requested id or name')
         sys.exit(1)
     except ValueError as exc:
-        log.debug(f'Invalid --id parameter: {str(exc)}')
+        log.debug('Invalid --id parameter: %s', str(exc))
         log.error('Invalid --id parameter, can\'t parse', err=True)
         sys.exit(1)
 
@@ -162,9 +162,9 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((host, port))
-        log.debug(f'Connected to {host}:{port}')
+        log.debug('Connected to %s:%d', host, port)
     except socket.error as exc:
-        log.error(f'Could not connect to host: {str(exc)}')
+        log.error('Could not connect to host: %s', str(exc))
         sys.exit(1)
 
     is_ts = oinfo.response_data_type == DataType.TIMESERIES
@@ -177,12 +177,19 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     try:
         rframe = receive_frame(sock)
     except FrameCRCMismatch as exc:
-        log.error(f'Received frame CRC mismatch: received 0x{exc.received_crc:X} but calculated '
-                  f'0x{exc.calculated_crc:X}')
+        log.error('Received frame CRC mismatch: received 0x%X but calculated 0x%X',
+                  exc.received_crc, exc.calculated_crc)
         sys.exit(1)
-    log.debug(f'Got frame: {rframe}')
+    except InvalidCommand:
+        log.error('Received an unexpected/invalid command in response')
+        sys.exit(1)
+    except FrameLengthExceeded:
+        log.error('Parser overshot, cannot recover frame')
+        sys.exit(1)
+
+    log.debug('Got frame: %s', rframe)
     if rframe.id != oinfo.object_id:
-        log.error(f'Received unexpected frame, ID is 0x{rframe.id:X}, expected 0x{oinfo.object_id:X}')
+        log.error('Received unexpected frame, ID is 0x%X, expected 0x%X', rframe.id, oinfo.object_id)
         sys.exit(1)
 
     if is_ts or is_ev:
@@ -213,8 +220,8 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
 
     try:
         sock.close()
-    except Exception as exc:
-        log.error(f'Exception when disconnecting from the host: {str(exc)}')
+    except Exception as exc:  # pylint: disable=broad-except
+        log.error('Exception when disconnecting from the host: %s', str(exc))
     sys.exit(0)
 
 
