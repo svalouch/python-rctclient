@@ -65,8 +65,8 @@ def socket_thread(connection, address) -> None:
             break
 
         if ready_read:
-            # read up to 1k bytes in one chunk
-            buf = connection.recv(1024)
+            # read up to 4k bytes in one chunk
+            buf = connection.recv(4096)
             if len(buf) > 0:
                 log.debug(f'Read {len(buf)} bytes: {buf.hex()}')
                 consumed = 0
@@ -104,8 +104,7 @@ def send_sim_response(connection, frame: ReceiveFrame, log: logging.Logger) -> N
     if frame.command == Command.READ:
         payload = encode_value(oinfo.response_data_type, oinfo.sim_data)
         sframe = SendFrame(command=Command.RESPONSE, id=frame.id, address=frame.address, payload=payload)
-        log.info(f'Read   : #{oinfo.index:3} 0x{oinfo.object_id:08X} {oinfo.name:{R.name_max_length()}} '
-                 f'-> {sframe.data.hex()}')
+        log.info(f'Read   : 0x{oinfo.object_id:08X} {oinfo.name:{R.name_max_length()}} -> {sframe.data.hex()}')
         log.debug(f'Sending frame {sframe} with {len(sframe.data)} bytes 0x{sframe.data.hex()}')
         connection.send(sframe.data)
 
