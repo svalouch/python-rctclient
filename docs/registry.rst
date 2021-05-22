@@ -267,13 +267,13 @@ rb485
    :widths: 10, 5, 5, 5, 15, 40
    :file: objectgroup_rb485.csv
 
-switch_on_board
-===============
+switch_on_cond
+==============
 
 .. csv-table::
    :header-rows: 1
    :widths: 10, 5, 5, 5, 15, 40
-   :file: objectgroup_switch_on_board.csv
+   :file: objectgroup_switch_on_cond.csv
 
 temperature
 ===========

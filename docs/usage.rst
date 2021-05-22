@@ -13,8 +13,8 @@ Parts overview
 
 The module offers a range of classes and methods that allow for a relatively modular workflow. This makes it possible
 to write a client application (the main goal of the module), but also a :ref:`simulator` to develop against. With a
-little extra work, it is even possible to read from a `pcap` file and check past communication captured using `tcpdump`
-or `wireshark`.
+little extra work, it is even possible to read from a *pcap* file and check past communication captured using *tcpdump*
+or *wireshark*.
 
 One thing that is not provided is methods for network communication, it is a
 `sans I/O <https://sans-io.readthedocs.io/>`_ library. This effectively means that the user has to bring in their own
@@ -25,7 +25,7 @@ communication schemes. There are some examples further down that actually deal w
 
 Object IDs (OIDs)
 =================
-The protocol revolves around Object IDs (OIDs) that work similar to OIDs in `snmp`, in that they are an address that is
+The protocol revolves around Object IDs (OIDs) that work similar to OIDs in *snmp*, in that they are an address that is
 targeted by a command (read value from OID, send value to OID) and that is referenced in the response to such a
 command. To deepen the similarities, a :ref:`registry` is provided that acts like a MIB definition file and enriches
 the raw OIDs with human-readable names as well as data types for decoding/encoding and so on.
@@ -147,6 +147,12 @@ the received and computed checksums for debugging and also carries the amount of
 those bytes and start with the next frame. Due to the way the devices work, CRC mismatches are not uncommon, and even
 a matching checksum does not guarantee that the data in the payload is complete. More on that later.
 
+In addition to that, if a command that the parser can't work with (such as ``EXTENSION``, or if the frame is broken), a
+:class:`~rctclient.exceptions.InvalidCommand` is raised, containing the amount of consumed bytes.
+
+If the parser notices that it overshot, a :class:`~rctclient.exceptions.FrameLengthExceeded` is raised, again
+containing the amount of consumed bytes.
+
 As an example, we'll read the frame data from the above *SendFrame* example as an input to the ReceiveFrames consume
 method. The output above was (in hexadecimal notation) ``2b0104959930bf0d65`` which can be transformed back into a byte
 stream using the ``bytearray.fromhex`` method:
@@ -227,11 +233,11 @@ The two functions :func:`rctclient.utils.decode_value` and :func:`rctclient.util
 data between high-level data types and byte streams in both directions.
 
 Each OID (see above) has a data type associated for sending and one for receiving (though they are the same for most
-OIDs). To encode a value for sending with a `SendFrame`, supply the ``request_data_type`` as first parameter to
+OIDs). To encode a value for sending with a *SendFrame*, supply the ``request_data_type`` as first parameter to
 ``encode_value``. For the opposite direction, supply the ``response_data_type`` to ``decode_value`` along with the
-content from the ``data`` attribute from the completed `ReceiveFrame`.
+content from the ``data`` attribute from the completed *ReceiveFrame*.
 
-If the data can't be decoded, a ``struct.error`` is raised by the `struct` module.
+If the data can't be decoded, a ``struct.error`` is raised by the *struct* module.
 
 .. warning::
 
@@ -338,6 +344,10 @@ when connecting the device to any network.
 
    To re-iterate: There is no security, anyone who can reach the device on the network has full control over it.
 
+It has been demonstrated that data can be injected into a running TCP communication. If the device was to communicate
+over an untrusted network (e.g. the Internet), anyone who could get a hold of the stream can send commands that the
+device will apply.
+
 .. _incomplete-responses:
 
 Incomplete, incorrect or missing responses
@@ -348,6 +358,10 @@ may be interrupted while preparing the payload, then calculates the checksum ove
 the wire. This is especially noticable when requesting large OIDs such as strings or the :ref:`protocol-timeseries` or
 :ref:`protocol-event-table` OIDs, as they appear to be cut at arbitrary places, yet the attached checksum matches the
 calculated checksum.
+
+Answers from the device may also contain perfectly valid data, but with a wrong checksum attached (the *read_pcap.py*
+tool makes an attempt to decode the frames for debugging purposes). In other (rare) cases, the request body from
+another client can found in a response's payload (although the checksum has been invalid in all observed cases).
 
 Sometimes the response can be lost alltogether, this can be seen in the app as timeouts, or when it appears that some
 parts of a table (e.g. the battery overview) are initially empty and are filled in after all the other values on the

@@ -211,8 +211,20 @@ class ReceiveFrame:
        * the distinction between normal and long commands is ignored. No error is reported if a frame that should be a
          ``LONG_RESPONSE`` is received with ``RESPONSE``, for example.
 
+    .. versionchanged:: 0.0.3
+
+       * The frame type is detected from the consumed data and the ``frame_type`` parameter was removed.
+       * Debug logging is now handled using the Python logging framework. ``debug()`` was dropped as it served no use
+         anymore.
+       * The ``decode()`` method was removed as the functionality was integrated into ``consume()``.
+
+    .. versionadded:: 0.0.3
+
+       The ``ignore_crc_match`` parameter prevents raising an exception on CRC mismatch. Use the ``crc_ok`` property to
+       figure out if the CRC matched when setting the parameter to ``True``.
+
     :param ignore_crc_mismatch: If not set, no exception is raised when the CRC checksums do **not** match. Use
-    ``crc_ok`` to figure out if they matched.
+       ``crc_ok`` to figure out if they matched.
     '''
     # frame complete yet?
     _complete: bool
@@ -299,6 +311,8 @@ class ReceiveFrame:
         Returns how many bytes the frame has consumed over its lifetime. This includes data that was consumed before
         the start of a frame was found, so the amount reported here may be larger than the amount of data that makes up
         the frame.
+
+        .. versionadded:: 0.0.3
         '''
         return self._consumed_bytes
 
@@ -306,6 +320,8 @@ class ReceiveFrame:
     def crc_ok(self) -> bool:
         '''
         Returns whether the CRC is valid. The value is only valid after a complete frame has arrived.
+
+        .. versionadded:: 0.0.3
         '''
         return self._crc_ok
 
@@ -320,6 +336,8 @@ class ReceiveFrame:
     def frame_type(self) -> FrameType:
         '''
         Returns the frame type if enough data has been received to decode it, and ``FrameType._NONE`` otherwise.
+
+        .. versionadded:: 0.0.3
         '''
         return self._frame_type
 
@@ -334,6 +352,8 @@ class ReceiveFrame:
     def ignore_crc_mismatch(self) -> bool:
         '''
         Returns whether CRC mismatches are ignored during decoding.
+
+        .. versionadded:: 0.0.3
         '''
         return self._ignore_crc_mismatch
 
@@ -341,6 +361,8 @@ class ReceiveFrame:
     def ignore_crc_mismatch(self, newval: bool) -> None:
         '''
         Changes whether CRC mismatches are ignored during decoding.
+
+        .. versionadded:: 0.0.3
         '''
         self._ignore_crc_mismatch = newval
 
@@ -350,15 +372,21 @@ class ReceiveFrame:
         Returns the length of the frame. This is ``0`` until the header containing the length field has been received.
         Note that this is not the length field of the protocol but rather the length of the frame in its entirety,
         from start byte to the end of the CRC.
+
+        .. versionadded:: 0.0.3
         '''
         return self._frame_length
 
     def consume(self, data: Union[bytes, bytearray]) -> int:  # pylint: disable=too-many-branches,too-many-statements
         '''
-        Consumes data until the frame is complete. Returns the number of consumed bytes.
+        Consumes data until the frame is complete. Returns the number of consumed bytes. Exceptions raised also carry
+        the amount of consumed bytes.
 
         :param data: Data to consume.
         :return: The amount of bytes consumed from the input data.
+        :raises FrameCRCMismatch: If the checksum didn't match and ``ignore_crc_mismatch`` was not set.
+        :raises FrameLengthExceeded: If the parser read past the frames advertised length.
+        :raises InvalidCommand: If the command byte is invalid or can't be decoded (such as ``EXTENSION``).
         '''
 
         i = 0

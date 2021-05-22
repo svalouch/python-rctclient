@@ -1,5 +1,4 @@
-rctclient - Python implementation of the RCT Power GmbH "Serial Communication Protocol"
-=======================================================================================
+# rctclient - Python implementation of the RCT Power GmbH "Serial Communication Protocol"
 
 This Python module implements the "Serial Communication Protocol" by RCT Power GmbH, used in their line of solar
 inverters. Appart from the API, it also includes a registry of object IDs and a command line tool. For development, a
@@ -7,10 +6,12 @@ simple simulator is included.
 
 This project is not in any way affiliated with or supported by RCT Power GmbH.
 
+## Documentation
+
 Below is a quickstart guide, the project documentation is on [Read the Docs](https://rctclient.readthedocs.io/).
 
-Installing
-----------
+## Installing
+
 Install and update using [pip](https://pip.pypa.io/en/stable/quickstart/):
 
 ```
@@ -23,8 +24,8 @@ To install the dependencies required for the CLI tool:
 $ pip install -U rctclient[cli]
 ```
 
-Example
--------
+## Example
+
 Let's read the current battery state of charge:
 ```python
 
@@ -69,8 +70,8 @@ value = decode_value(object_info.response_data_type, frame.data)
 print(f'Response value: {value}')
 ```
 
-Reading values from the command line
-------------------------------------
+## Reading values from the command line
+
 The module installs the `rctclient` command (requires `click`). The subcommand `read-values` reads a single value from
 the device and returns its output. Here is a call example using the object ID with verbose output:
 
@@ -89,8 +90,8 @@ This makes it suitable for use with scripting environments where one just needs 
 before the subcommands name, the log level is set to DEBUG and all log messages are sent to `stderr`, which allows for
 scripts to continue processing the value on stdout, while allowing for observations of the inner workings of the code.
 
-Generating the documentation
-----------------------------
+## Generating the documentation
+
 The documentation is generated using Sphinx, and requires that the software be installed to the local environment (e.g.
 via virtualenv). With a local clone of the repository, do the following (activate your virtualenv before if so
 desired):

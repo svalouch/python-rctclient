@@ -1,7 +1,12 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020, Stefan Valouch (svalouch)
+# Copyright 2020-2021, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
+
+'''
+Exceptions used by the module.
+'''
+
 
 class RctClientException(Exception):
     '''

@@ -30,10 +30,11 @@ Exceptions
 
 .. autoclass:: rctclient.exceptions.FrameError
 
-.. autoclass:: rctclient.exceptions.FrameNotComplete
-
 .. autoclass:: rctclient.exceptions.FrameCRCMismatch
 
+.. autoclass:: rctclient.exceptions.FrameLengthExceeded
+
+.. autoclass:: rctclient.exceptions.InvalidCommand
 
 Classes
 *******

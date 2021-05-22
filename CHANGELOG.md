@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## Release 0.0.3 - Unreleased
+## Release 0.0.3 - 2021-05-22
 
 ### Breaking changes
 
