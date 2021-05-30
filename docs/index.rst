@@ -25,6 +25,7 @@ file for further information.
    api
    tools
    CHANGELOG
+   app_mapping
 
 .. toctree::
    :maxdepth: 1

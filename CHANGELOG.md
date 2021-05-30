@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## Release 0.0.4 - unreleased
 
+### Documentation
+
+- Add a page showing the overview screens of the RCT Power app and which OIDs are used to display the values.
 
 ## Release 0.0.3 - 2021-05-22
 
