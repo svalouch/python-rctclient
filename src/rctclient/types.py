@@ -10,7 +10,7 @@ Type declarations.
 # pylint: disable=too-many-arguments,too-few-public-methods
 
 from datetime import datetime
-from enum import IntEnum
+from enum import auto, IntEnum
 from typing import Optional
 
 
@@ -25,12 +25,16 @@ class Command(IntEnum):
     WRITE = 0x02
     #: Long write command (use for variables > 251 bytes)
     LONG_WRITE = 0x03
+    # Reserved
+    # RESERVED = 0x04
     #: Response to a read or write command
     RESPONSE = 0x05
     #: Long response (for variables > 251 bytes)
     LONG_RESPONSE = 0x06
-    # Periodic reading
-    # READ_PERIODICALLY = 0x08
+    # Reserved
+    # RESERVED = 0x07
+    #: Periodic reading
+    READ_PERIODICALLY = 0x08
 
     #: Plant: Read command
     PLANT_READ = READ | 0x40
@@ -38,11 +42,21 @@ class Command(IntEnum):
     PLANT_WRITE = WRITE | 0x40
     #: Plant: Long write
     PLANT_LONG_WRITE = LONG_WRITE | 0x40
+    # Reserved
+    # PLANT_RESERVED = 0x04 | 0x40
+    #: Plant: Response to a read or write to master
+    PLANT_RESPONSE = RESPONSE | 0x40
+    #: Plant: Long response to a read or write to master
+    PLANT_LONG_RESPONSE = LONG_RESPONSE | 0x40
+    # Reserved
+    # PLANT_RESERVED = 0x07 | 0x40
+    #: Plant: Periodic reading
+    PLANT_READ_PERIODICALLY = READ_PERIODICALLY | 0x40
 
-    #: Extension
+    #: Extension, can't be parsed using :class:`~rctclient.frame.ReceiveFrame`.
     EXTENSION = 0x3c
 
-    #: Sentinel, do not use
+    #: Internal sentinel value, do not use
     _NONE = 0xff
 
     @staticmethod
@@ -57,7 +71,27 @@ class Command(IntEnum):
         '''
         Returns whether a command is a long command.
         '''
-        return command in (Command.LONG_WRITE, Command.LONG_RESPONSE, Command.PLANT_LONG_WRITE)
+        return command in (Command.LONG_WRITE, Command.LONG_RESPONSE, Command.PLANT_LONG_WRITE,
+                           Command.PLANT_LONG_RESPONSE)
+
+    @staticmethod
+    def is_write(command: 'Command') -> bool:
+        '''
+        Returns whether a command is a write command.
+
+        .. versionadded:: 0.0.4
+        '''
+        return command in (Command.WRITE, Command.LONG_WRITE, Command.PLANT_WRITE, Command.PLANT_LONG_WRITE)
+
+    @staticmethod
+    def is_response(command: 'Command') -> bool:
+        '''
+        Returns whether a command is a response.
+
+        .. versionadded:: 0.0.4
+        '''
+        return command in (Command.RESPONSE, Command.LONG_RESPONSE, Command.PLANT_RESPONSE,
+                           Command.PLANT_LONG_RESPONSE)
 
 
 class ObjectGroup(IntEnum):

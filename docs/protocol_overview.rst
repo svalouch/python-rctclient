@@ -7,6 +7,15 @@ The protocol is based on TCP and is based around commands targeting object IDs t
 Messages are protected against transfer failures by means of a 2-byte CRC checksum. The protocol in itself isn't very
 complicated, but there are some things like escaping, length calculation and plant communication to look out for.
 
+There is no method to tell that a communication was not understood at the protocol level, meaning that it is up to the
+implementor to figure out a way to let the client know that something was not understood. Vendor devices may simply
+fail to respond or respond with an empty payload, or do something else. It is advised to pay attention to the checksums
+and errors during payload decoding. Vendor devices do facilitate special OIDs that contain information about their
+state, but that is an implementation detail of the specific devices. If implementing an application, one could specify
+some OIDs that can be used to report if the previous command resulted in an error, for example.
+
+Protocol Data Units
+*******************
 The Protocol Data Units (PDU) are comprised of:
 
 #. A start token (``+``)
@@ -17,7 +26,7 @@ The Protocol Data Units (PDU) are comprised of:
 #. Payload (optional)
 #. CRC16 checksum
 
-Data is encoded as big endian.
+Data is encoded as big endian, a leading ``0x00`` before the start token is allowed.
 
 +----------------+-------+---------------------------------------+
 | Element        | Bytes | Remarks                               |
@@ -41,8 +50,15 @@ Data is encoded as big endian.
 | CRC16          | 2     |                                       |
 +----------------+-------+---------------------------------------+
 
+.. hint::
+
+   The OIDs are actually an implementation detail of the device. The protocol only defines that they are 4 bytes in
+   length. All other details like the data type, whether a payload can be used and so on are up to the implementer, so
+   in order to implement your own application, you would simply define your own OIDs with associated data types instead
+   of using the ones in the :ref:`registry` or the examples.
+
 Escaping
-********
+========
 
 Certain characters are escaped by inserting the escape token ``-`` (``0x2d``) into the stream before the byte that
 requires escaping. When the start token (``+``) or escape token is encountered in the data stream (unless it's the very
@@ -50,28 +66,77 @@ first byte for the start token), the escape token is inserted before the token t
 escape token is encountered, the next character is interpreted as data and not as start token or escape token. Thus, if
 the task is to encode a plus sign (usually in a string), then a minus is added *before* the plus sign to escape it.
 
+Checksum
+========
+The checksum algorithm used is a special version of CRC16 using a CCITT polynom (``0x1021``). It varies from other
+implementation by appending a NULL byte to the input if its length is uneven before commencing with the calculation.
+
 Commands
 ********
+There are two groups of commands: *Standard* communication commands that are sent to a device and the device replies,
+as well as *Plant* communication commands, which are standard commands ORed with ``0x40``.
 
-============= ======== ======================================================
-Command       Value    Description
-============= ======== ======================================================
-READ          ``0x01`` Request the current value of an object ID. No payload.
-WRITE         ``0x02`` Write the payload to the object ID.
-LONG_WRITE    ``0x03`` When writing "long" payloads.
-RESPONSE      ``0x05`` Normal response to a read or write command.
-LONG_RESPONSE ``0x06`` Response with a "long" payload.
-EXTENSION     ``0x3c`` Unknown.
-============= ======== ======================================================
+Commands not listed here are either not known or are reserved, and should not be used with the devices as it is not
+known what effect this could have.
+
+======================= ============= ======================================================
+Command                 Value         Description
+======================= ============= ======================================================
+READ                    ``0x01``      Request the current value of an object ID. No payload.
+WRITE                   ``0x02``      Write the payload to the object ID.
+LONG_WRITE              ``0x03``      When writing "long" payloads.
+*RESERVED*              ``0x04``
+RESPONSE                ``0x05``      Normal response to a read or write command.
+LONG_RESPONSE           ``0x06``      Response with a "long" payload.
+*RESERVED*              ``0x07``
+READ_PERIODICALLY       ``0x08``      Request automatic, periodic sending of an OIDs value.
+*Reserved*              ``0x09-0x40``
+PLANT_READ              ``0x41``      *READ* for plant communication.
+PLANT_WRITE             ``0x42``      *WRITE* for plant communication.
+PLANT_LONG_WRITE        ``0x43``      *LONG_WRITE* for plant communication.
+*RESERVED*              ``0x44``
+PLANT_RESPONSE          ``0x45``      *RESPONSE* for plant communication.
+PLANT_LONG_RESPONSE     ``0x46``      *LONG_RESPONSE* for plant communication.
+*RESERVED*              ``0x47``
+PLANT_READ_PERIODICALLY ``0x48``      *READ_PERIODICALLY* for plant communication.
+EXTENSION               ``0x3c``      Unknown, see below.
+======================= ============= ======================================================
+
+.. warning::
+
+   Plant communication has not been tested with this library due to lack of a setup facilitating it. It may work, and
+   we'd appreciate reports if it works or *tcpdumps* from actual, official plant communication!
+
+The EXTENSION command
+=====================
+EXTENSION does not follow the semantics of other commands and cannot be parsed by *rctclient*. It is believed to be a
+single-byte payload; a frame often observed is ``0x2b3ce1``, which is sent by the official app uppon connecting to a
+device to "switch to COM protocol". In this case, ``0xe1`` is the commands payload, and a normal frame follows
+immediately after, which leads to the conclusion of this command always being three bytes in length.
+
+READ_PERIODICALLY
+=================
+Registers a OID for being sent periodically. The device will send the current value of the OID at an interval defined
+in ``pas.period`` (see :ref:`registry`). Up to 64 OIDs can be registered with vendor devices, but the protocol does not
+impose a limit, and all registered OIDs will be served at the same interval setting. When sending this command, the
+device immediately responds with the current value of the OID, and will then periodically send the current value.
+
+To disable, set ``pas.period`` to 0, which clears the list of registered OIDs, effectively disabling the feature. No
+method exists for removing a single OID, one has to clear it, then set ``pas.period`` and re-register all desired OIDs.
+
+.. warning::
+
+   The implementation has not been tested yet, please don't hesitate to open an issue if you run into problems or have
+   more insight into the matter.
 
 Frame length
 ************
 
-The frame length is 1 byte for all commands except *LONG_RESPONSE* and *LONG_WRITE*, which use 2 bytes (most
-siginificant byte first). The length denotes how many bytes of data follow it. Escape tokens are not counted, and it
-does not include the two-byte header before it (start token and command) and does also not include the two-byte CRC16
-at the end of the frame. In order to fully receive a frame, after reversing any escaping, the buffer should therefor
-hold ``2 + length + 2`` bytes.
+The frame length is 1 byte for all commands except *LONG_RESPONSE* and *LONG_WRITE* and their *PLANT_* counterparts,
+which use 2 bytes (most siginificant byte first). The length denotes how many bytes of data follow it. Escape tokens
+are not counted, and it does not include the two-byte header before it (start token and command) and does also not
+include the two-byte CRC16 at the end of the frame. In order to fully receive a frame, after reversing any escaping,
+the buffer should therefor hold ``2 + length + 2`` bytes.
 
 Frame by example
 ****************

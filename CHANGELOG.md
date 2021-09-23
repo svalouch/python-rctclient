@@ -7,6 +7,20 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - Add a page showing the overview screens of the RCT Power app and which OIDs are used to display the values.
+- Mention that some behaviours and the entire content of the registry is an implementation detail of the vendor and are
+  not mandated by the protocol itself and as such may not apply to other implementations.
+- Protocol overview:
+  - Add section about lack of protocol-level error handling.
+  - Add note about `EXTENSION` commands, their structure is unknown.
+  - Document what is known about `READ_PERIODICALLY` and how it is supposed to work with vendor devices.
+  - Mention checksum algorithm.
+  - List all known commands as well as reserved ones.
+
+### Features
+
+- `Command` has new functions `is_write` and `is_response` to help working with received frames.
+- `Command` learned about `READ_PERIODICALLY`, but it has not been tested yet.
+- `Command` learned about the `PLANT_` equivalents of the other commands.
 
 ## Release 0.0.3 - 2021-05-22
 

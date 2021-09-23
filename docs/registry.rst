@@ -7,12 +7,18 @@
 Registry
 ########
 
-The registry is a data structure that maintains a list of all known :class:`~rctclient.registry.ObjectInfo`. It is
-implemented as :class:`~rctclient.registry.Registry`, please head to the API documentation for means to query it for
-object ID information. As the registry is a heavy object, it is maintained as an instance ``REGISTRY`` in the
-``registry`` module and can be imported where needed.
+This page lists all known OIDs for use with a device by RCT Power GmbH. With the protocol only specifying the length of
+the OID as four bytes, it is an implementation detail of the particular application. This list here is bundled with the
+application, as interfacing with vendor devices is its main use-case. If you were to implement your own application,
+you'd simply define your own OIDs and use them instead of the bundled ones.
 
-The following list is a complete index of all the object IDs currently maintained by the registry.
+The registry as part of the library is a data structure that maintains a list of all known
+:class:`~rctclient.registry.ObjectInfo`. It is implemented as :class:`~rctclient.registry.Registry`, please head to the
+API documentation for means to query it for object ID information. As the registry is a heavy object, it is maintained
+as an instance ``REGISTRY`` in the ``registry`` module and can be imported where needed.
+
+The following list is a complete index of all the object IDs currently maintained by the registry for use with official
+vendor devices.
 
 .. the following tables are generated from the registry in registry.py using generate_registry.py
 
