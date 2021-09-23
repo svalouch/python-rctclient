@@ -4,7 +4,8 @@ Welcome to rctclient's documentation!
 
 This documentation covers the `rctclient` python library, used to interact with solar inverters by `RCT Power GmbH` by
 implementing their proprietary "RCT Power Serial Communication Protocol". It also serves as documentation of the
-protocol itself.
+protocol itself. As such, the main focus is on supporting the vendors devices, but the library can be used for own
+implementations just as well.
  
 **Disclaimer**: Neither the python library nor this documentation is in any way affiliated with or supported by RCT
 Power GmbH in any way. Do **not** ask them for support regarding anything concerning the content of the material

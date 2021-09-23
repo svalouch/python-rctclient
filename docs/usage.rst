@@ -41,8 +41,10 @@ the request type, but there are a few exceptions: :ref:`protocol-timeseries` and
 
 Registry
 ========
-The :class:`rctclient.registry.Registry` class maintains a list of OIDs. As the list is quite long and for the users
-convenience, a module-scope instance is available as ``REGISTRY``.
+The :class:`rctclient.registry.Registry` class maintains a list of OIDs for communicating with vendor devices. It isn't
+required for own implementations of a server of this protocol, where one would simply define own OIDs as needed.
+
+As the list is quite long and for the users convenience, a module-scope instance is available as ``REGISTRY``.
 
 Most of the examples will assume an import like the following:
 
