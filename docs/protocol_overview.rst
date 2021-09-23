@@ -71,6 +71,7 @@ Checksum
 The checksum algorithm used is a special version of CRC16 using a CCITT polynom (``0x1021``). It varies from other
 implementation by appending a NULL byte to the input if its length is uneven before commencing with the calculation.
 
+
 Commands
 ********
 There are two groups of commands: *Standard* communication commands that are sent to a device and the device replies,
@@ -102,11 +103,6 @@ PLANT_READ_PERIODICALLY ``0x48``      *READ_PERIODICALLY* for plant communicatio
 EXTENSION               ``0x3c``      Unknown, see below.
 ======================= ============= ======================================================
 
-.. warning::
-
-   Plant communication has not been tested with this library due to lack of a setup facilitating it. It may work, and
-   we'd appreciate reports if it works or *tcpdumps* from actual, official plant communication!
-
 The EXTENSION command
 =====================
 EXTENSION does not follow the semantics of other commands and cannot be parsed by *rctclient*. It is believed to be a
@@ -137,6 +133,22 @@ which use 2 bytes (most siginificant byte first). The length denotes how many by
 are not counted, and it does not include the two-byte header before it (start token and command) and does also not
 include the two-byte CRC16 at the end of the frame. In order to fully receive a frame, after reversing any escaping,
 the buffer should therefor hold ``2 + length + 2`` bytes.
+
+Plant communication
+*******************
+With plant communication, one device acts as plant leader and relays commands addressed at subordinate devices to them
+and their responses back to the client. Vendor devices need to be linked together, each has its own ``address``.
+
+To use plant communication, use the ``PLANT_*`` variations of the normal commands (``READ`` → ``PLANT_READ`` and so on)
+and supply the ``address`` property. The leader device forwards the command to the device that has the address set, all
+other devices ignore the frame. The answer from the addressed device is then sent back to the client by the leader,
+with a ``PLANT_*`` response command and the ``address`` set to that of the addressed device.
+
+.. warning::
+
+   Plant communication has not been tested and the implementation simply follows what is known. The authors do not have
+   a setup to test this kind of communication. We'd greatly appreciate traffic dumps of actual plant communication or
+   feedback if it works or not.
 
 Frame by example
 ****************

@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
   - Document what is known about `READ_PERIODICALLY` and how it is supposed to work with vendor devices.
   - Mention checksum algorithm.
   - List all known commands as well as reserved ones.
+  - Describe plant communication, which has not been tested yet.
 
 ### Features
 
