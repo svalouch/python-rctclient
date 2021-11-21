@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - Add a page showing the overview screens of the RCT Power app and which OIDs are used to display the values.
 - Mention that some behaviours and the entire content of the registry is an implementation detail of the vendor and are
   not mandated by the protocol itself and as such may not apply to other implementations.
+- New page `Faults` for interpreting the `fault[*].flt` responses in RCT devices.
+- Split documentation by moving the vendor-specific (aka RCT Inverter) parts to their own section (Registry, Faults and
+  App mapping).
 - Protocol overview:
   - Add section about lack of protocol-level error handling.
   - Add note about `EXTENSION` commands, their structure is unknown.

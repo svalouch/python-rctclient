@@ -21,12 +21,18 @@ file for further information.
 
    usage
    cli
-   registry
    simulator
    api
    tools
    CHANGELOG
-   app_mapping
+
+.. toctree::
+   :maxdepth: 1
+   :caption: RCT Inverter Documentation
+
+   inverter_registry
+   inverter_faults
+   inverter_app_mapping
 
 .. toctree::
    :maxdepth: 1
