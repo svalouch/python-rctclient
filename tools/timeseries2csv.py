@@ -270,7 +270,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
                         # correct up to one full minute
                         nt_ts = t_ts.replace(second=0)
                         if nt_ts not in datetable:
-                            nt_ts = t_ts.replace(second=0, minute=t_ts.minute + 1)
+                            nt_ts = t_ts.replace(second=0, minute=(t_ts.minute + 1) % 60, hour=t_ts.hour + (t_ts.minute + 1) // 60)
                             if nt_ts not in datetable:
                                 cprint(f'\t{t_ts} does not fit raster, skipped')
                                 continue
