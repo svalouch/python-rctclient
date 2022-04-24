@@ -29,6 +29,7 @@ from rctclient.utils import decode_value, encode_value
 
 # pylint: disable=too-many-arguments,too-many-locals
 
+gmt = pytz.timezone('GMT')
 
 def datetime_range(start: datetime, end: datetime, delta: relativedelta):
     '''
@@ -114,7 +115,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
         sys.exit(1)
 
     timezone = pytz.timezone(time_zone)
-    now = datetime.now()
+    now = datetime.now(timezone)
 
     if resolution == 'minutes':
         oid_names = ['logger.minutes_ubat_log_ts', 'logger.minutes_ul3_log_ts', 'logger.minutes_ub_log_ts',
@@ -209,7 +210,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
         while highest_ts > ts_start and not iter_end:
             cprint(f'\ttimestamp: {highest_ts}')
             sock.send(make_frame(command=Command.WRITE, id=oid.object_id,
-                                 payload=encode_value(DataType.INT32, int(highest_ts.timestamp()))))
+                                 payload=encode_value(DataType.INT32, int(highest_ts.replace(tzinfo=gmt).timestamp()))))
 
             rframe = ReceiveFrame()
             while True:
@@ -313,7 +314,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
     for bts, btval in datetable.items():
         if btval:  # there may be holes in the data
-            writer.writerow([timezone.localize(bts).isoformat('T')] + [str(btval[name]) for name in names])
+            writer.writerow([bts.isoformat('T')] + [str(btval[name]) for name in names])
 
     if output != '-':
         fd.flush()
