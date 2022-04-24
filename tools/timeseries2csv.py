@@ -209,6 +209,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
         while highest_ts > ts_start and not iter_end:
             cprint(f'\ttimestamp: {highest_ts}')
+            # rct power device seems to treat local time at GMT when converting from/to timestamps
             sock.send(make_frame(command=Command.WRITE, id=oid.object_id,
                                  payload=encode_value(DataType.INT32, int(highest_ts.replace(tzinfo=gmt).timestamp()))))
 
@@ -255,6 +256,9 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
             # work with the data
             for t_ts, t_val in table.items():
+
+                # rct power device seems to treat local time at GMT when converting from/to timestamps
+                t_ts = timezone.localize(t_ts)
 
                 # set the "highest" point in time to know what to request next when the day is not complete
                 if t_ts < highest_ts:
