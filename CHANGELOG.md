@@ -19,12 +19,23 @@ All notable changes to this project will be documented in this file.
   - Mention checksum algorithm.
   - List all known commands as well as reserved ones.
   - Describe plant communication, which has not been tested yet.
+- CLI invocation: Bash-completion activation changed with newer versions of `Click`.
 
 ### Features
 
 - `Command` has new functions `is_write` and `is_response` to help working with received frames.
 - `Command` learned about `READ_PERIODICALLY`, but it has not been tested yet.
 - `Command` learned about the `PLANT_` equivalents of the other commands.
+
+### Bugfixes
+
+- CLI: Implement support for `Click 8.1` caused by API changes related to custom completions (Issue #17, PR #18).
+
+### Dependency changes
+
+- `Click`: Version `7.0` is the new minimum, it supported custom completion functions for the first time
+- `Click`: Version `8.1` is the new maximum, to guard against API changes during unconditionally updating the
+  dependencies.
 
 ## Release 0.0.3 - 2021-05-22
 

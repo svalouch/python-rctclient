@@ -32,7 +32,7 @@ setup(
 
     extras_require={
         'cli': [
-            'click',
+            'click>=7.0<8.2',
         ],
         'tests': [
             'mypy',

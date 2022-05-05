@@ -52,16 +52,20 @@ def cli(ctx, debug: bool, frame_debug: bool) -> None:
     log.info('rctclient CLI starting')
 
 
-def autocomplete_registry_name(_ctx, _args: List, incomplete: str) -> List[str]:
+def autocomplete_registry_name(*args, **kwargs) -> List[str]:  # pylint: disable=unused-argument
     '''
     Provides autocompletion for the object IDs name parameter.
 
-    :param _ctx: Click context (ignored).
-    :param _args: Arguments (ignored).
-    :param incomplete: Incomplete (or empty) string from the user.
     :return: A list of names that either start with `incomplete` or all if `incomplete` is empty.
     '''
-    return R.prefix_complete_name(incomplete)
+    if 'incomplete' not in kwargs:
+        kwargs['incomplete'] = ''
+    return R.prefix_complete_name(kwargs['incomplete'])
+
+if click.__version__ >= '8.1.0':
+    autocomp_registry = {'shell_complete': autocomplete_registry_name}
+else:
+    autocomp_registry = {'autocompletion': autocomplete_registry_name}
 
 
 def receive_frame(sock: socket.socket, timeout: int = 2) -> ReceiveFrame:
@@ -102,8 +106,7 @@ def receive_frame(sock: socket.socket, timeout: int = 2) -> ReceiveFrame:
 @click.option('-h', '--host', required=True, type=click.STRING, help='Host address or IP of the device',
               metavar='<host>')
 @click.option('-i', '--id', type=click.STRING, help='Object ID to query, of the form "0xXXXX"', metavar='<ID>')
-@click.option('-n', '--name', help='Object name to query', type=click.STRING, metavar='<name>',
-              autocompletion=autocomplete_registry_name)
+@click.option('-n', '--name', help='Object name to query', type=click.STRING, metavar='<name>', **autocomp_registry)
 @click.option('-v', '--verbose', is_flag=True, default=False, help='Enable verbose output')
 def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str], verbose: bool) -> None:
     '''
