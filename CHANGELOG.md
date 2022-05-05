@@ -43,14 +43,14 @@ before the frame is `complete()`.
 
 **Rationale**: The main use case is the detection and handling of frames with invalid length field. As the correctness
 of the frame could previously only be determined after it the advertised amount of data was received, frames that
-advertise an abnormal amount of data consumed tens or hundrets of valid frames with no way for the application to
-determin what was wrong. With the change, the application can now check for command and length, and abort the frame if
+advertise an abnormal amount of data consumed tens or hundreds of valid frames with no way for the application to
+determine what was wrong. With the change, the application can now check for command and length, and abort the frame if
 it seems reasonable. For example when it detects that a frame that carries a `DataType.UINT8` field wants to consume
 100 bytes, which is far larger than what is needed to transport such a small type, it can abort the frame and skip past
-the beginning of the broken frame, as an alternative to keeping track of buffer contents over multiple tcp packets, in
+the beginning of the broken frame, as an alternative to keeping track of buffer contents over multiple TCP packets, in
 order to loop back once it is clear that the current frame is broken.
 
-The exception `FrameNotComplete` was removed as it was not used anymore, and `InvalidCommand` was added in its place.
+The exception `FrameNotComplete` was removed as it was not used any more, and `InvalidCommand` was added in its place.
 Furthermore, if the parser detects that it overshot (which hints at a programming error), it raises
 `FrameLengthExceeded`, enabling calling code to abort the frame.
 
@@ -78,7 +78,7 @@ Furthermore, if the parser detects that it overshot (which hints at a programmin
 ### Documentation
 
 - Disable Smartquotes (https://docutils.sourceforge.io/docs/user/smartquotes.html) which renders double-dash strings as
-  a single hyphen character, and the CLI documentation can't be copy-pasted to a terminal anymore without manually
+  a single hyphen character, and the CLI documentation can't be copy-pasted to a terminal any more without manually
   editing it before submitting. (Issue #5).
 
 ### Bugfixes
@@ -89,16 +89,16 @@ Furthermore, if the parser detects that it overshot (which hints at a programmin
 - Registry: Mark some OIDs that are known to contain complex data that hasn't been decoded yet as being of type
   `UNKNOWN` instead of `STRING`. Most of them cannot be decoded to a valid string most of the time, and even then the
   content would not make sense. This change allows users to filter these out, e.g. when printing their content.
-- Simulator: If multiple requests were sent in the same TCP paket, the simulator returned the answer for the first
+- Simulator: If multiple requests were sent in the same TCP packet, the simulator returned the answer for the first
   frame that it got for all of the requests in the buffer.
-- Tool `read_pcap.py` now drops a frame if it ran over the segment boundary (next tcp packet) if the new segment looks
+- Tool `read_pcap.py` now drops a frame if it ran over the segment boundary (next TCP packet) if the new segment looks
   like it starts with a new frame (`0x002b`). This way invalid frames with very high length fields are caught earlier,
-  only losing the rest of the segment instead of consuming potentially hundrets of frames only to error out on
+  only losing the rest of the segment instead of consuming potentially hundreds of frames only to error out on
   CRC-check.
 - Tool `csv2influx.py` had a wrong `--resolution` parameter set. It has been adapted to the one used in
   `timeseries2csv.py`. Note that the table name is made up from the parameters value and changes with it (Issue #8).
 - `ReceiveFrame` used to extract the address in plant frames at the wrong point in the buffer, effectively swapping
-  address and oid (PR #11).
+  address and OID (PR #11).
 
 ## Release 0.0.2 - 2021-02-17
 
@@ -110,7 +110,6 @@ Furthermore, if the parser detects that it overshot (which hints at a programmin
   and put into its own function `make_frame`. Internally, `SendFrame` calls `make_frame`.
 - CLI: Implement simple handling of time series data. The data is returned as a CSV table and the start timestamp is
   always the current time.
-  the start timestamp yet.
 - CLI: Implement simple handling of the event table. The data is returned as a CSV table and the start timestamp is
   always the current time. The data is printed as hexadecimal strings, as the meaning of most of the types is now known
   yet.
