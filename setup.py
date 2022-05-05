@@ -42,7 +42,7 @@ setup(
             'pytest-pylint',
         ],
         'docs': [
-            'click',
+            'click>=7.0<8.2',
             'Sphinx>=2.0',
             'sphinx-autodoc-typehints',
             'sphinx-click',
@@ -67,5 +67,6 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
 )

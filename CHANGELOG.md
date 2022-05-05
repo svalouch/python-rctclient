@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
   - List all known commands as well as reserved ones.
   - Describe plant communication, which has not been tested yet.
 - CLI invocation: Bash-completion activation changed with newer versions of `Click`.
+- CLI: Document why there is now write support in the CLI.
 
 ### Features
 

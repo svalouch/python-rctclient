@@ -21,6 +21,7 @@ file for further information.
 
    usage
    cli
+   cli_write_support
    simulator
    api
    tools
