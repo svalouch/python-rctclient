@@ -317,7 +317,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
     if output != '-':
         fd.flush()
-        os.fsync(fd.fileno())
+        fd.close()
         try:
             os.rename(filepath, output)
         except OSError as exc:
