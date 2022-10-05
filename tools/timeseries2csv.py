@@ -300,7 +300,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
                     iter_end = True
 
     if output is None:
-        output = f'data_{resolution}_{ts_start.isoformat("T")}.csv'
+        output = f'data_{resolution}_{ts_start.strftime("%Y%m%d_%H%M%S")}.csv'
 
     if output == '-':
         fd = sys.stdout
