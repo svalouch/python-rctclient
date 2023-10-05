@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## Release 0.0.5 - unreleased
 
+### Documentation
+
+- Add page to document inverter bitfields and enumerations.
+
 ## Release 0.0.4 - 2023-10-05
 
 ### Documentation

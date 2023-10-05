@@ -53,6 +53,7 @@ of interest for you:
 
    inverter_registry
    inverter_faults
+   inverter_bitfields
    inverter_app_mapping
 
 .. toctree::
