@@ -367,7 +367,7 @@ REGISTRY = Registry([
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x6E24632E, index=388, request_data_type=DataType.UINT32,                     name='battery.cells_stat[5].u_max.time'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x6E491B50, index=390, request_data_type=DataType.FLOAT,  unit='V',           name='battery.maximum_charge_voltage',               description='Max. charge voltage'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x70349444, index=396, request_data_type=DataType.UINT8,                      name='battery.cells_stat[1].t_min.index'),
-    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x70A2AF4F, index=397, request_data_type=DataType.INT32,                      name='battery.bat_status'),
+    ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x70A2AF4F, index=397, request_data_type=DataType.INT32,                      name='battery.bat_status',                           description="Current battery status (bitfield)"),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x5847E59E, index=306, request_data_type=DataType.FLOAT,  unit='V',           name='battery.maximum_charge_voltage_constant_u',    description='Max. charge voltage'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x71196579, index=400, request_data_type=DataType.UINT8,                      name='battery.cells_stat[5].t_min.index'),
     ObjectInfo(group=ObjectGroup.BATTERY,         object_id=0x71765BD8, index=404, request_data_type=DataType.INT32,                      name='battery.status',                               description='Battery status'),

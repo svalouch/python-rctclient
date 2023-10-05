@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Add page to document inverter bitfields and enumerations.
 - Add more fault codes and a warning that the added codes overflow the bitfield.
+- Update description for ``battery.bat_status`` in the App mapping after RCT added a proper name to it, also add a description to the field in the Registry.
 
 ## Release 0.0.4 - 2023-10-05
 
