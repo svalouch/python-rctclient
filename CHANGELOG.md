@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## Release 0.0.5 - unreleased
 
+### Breaking changes
+
+- Bump minimum Python version to `3.9` (Debian Bullseye).
+- Migrate project to `pyproject.toml`, managed by [Poetry](https://python-poetry.org/docs/).
+
 ### Documentation
 
 - Add page to document inverter bitfields and enumerations.

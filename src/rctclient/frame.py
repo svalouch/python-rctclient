@@ -1,13 +1,13 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020,2021 Stefan Valouch (svalouch)
+# Copyright 2020-2023 Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import logging
 import struct
 from typing import Union
 
-from .exceptions import FrameCRCMismatch, InvalidCommand, FrameLengthExceeded
+from .exceptions import FrameCRCMismatch, FrameLengthExceeded, InvalidCommand
 from .types import Command, FrameType
 from .utils import CRC16
 
@@ -377,7 +377,7 @@ class ReceiveFrame:
         '''
         return self._frame_length
 
-    def consume(self, data: Union[bytes, bytearray]) -> int:  # pylint: disable=too-many-branches,too-many-statements
+    def consume(self, data: Union[bytes, bytearray]) -> int:
         '''
         Consumes data until the frame is complete. Returns the number of consumed bytes. Exceptions raised also carry
         the amount of consumed bytes.
@@ -390,10 +390,10 @@ class ReceiveFrame:
         '''
 
         i = 0
-        for d_byte in data:  # pylint: disable=too-many-nested-blocks  # ugly parser is ugly
+        for d_byte in data:  # ugly parser is ugly
             self._consumed_bytes += 1
             i += 1
-            c = bytes([d_byte])  # pylint: disable=invalid-name
+            c = bytes([d_byte])
             self._log.debug('read: 0x%s', c.hex())
 
             # sync to start_token

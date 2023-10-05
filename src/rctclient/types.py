@@ -1,6 +1,6 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020-2021, Stefan Valouch (svalouch)
+# Copyright 2020-2023, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 '''
@@ -10,7 +10,7 @@ Type declarations.
 # pylint: disable=too-many-arguments,too-few-public-methods
 
 from datetime import datetime
-from enum import auto, IntEnum
+from enum import IntEnum
 from typing import Optional
 
 

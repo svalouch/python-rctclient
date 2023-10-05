@@ -1,7 +1,7 @@
 # rctclient - Python implementation of the RCT Power GmbH "Serial Communication Protocol"
 
 This Python module implements the "Serial Communication Protocol" by RCT Power GmbH, used in their line of solar
-inverters. Appart from the API, it also includes a registry of object IDs and a command line tool. For development, a
+inverters. Apart from the API, it also includes a registry of object IDs and a command line tool. For development, a
 simple simulator is included.
 
 This project is not in any way affiliated with or supported by RCT Power GmbH.

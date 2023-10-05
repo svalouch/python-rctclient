@@ -1,18 +1,11 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020-2021, Stefan Valouch (svalouch)
+# Copyright 2020-2023, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
 from datetime import datetime
-from typing import overload, Dict, Tuple, Union
-
-try:
-    # Python 3.8+
-    from typing import Literal
-except ImportError:
-    # Python < 3.8
-    from typing_extensions import Literal
+from typing import Dict, Literal, Tuple, Union, overload
 
 from .types import DataType, EventEntry
 
@@ -63,8 +56,7 @@ def encode_value(data_type: Literal[DataType.STRING], value: Union[str, bytes]) 
     ...
 
 
-# pylint: disable=too-many-branches,too-many-return-statements
-def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]) -> bytes:
+def encode_value(data_type: DataType, value: Union[bool, bytes, float, int, str]) -> bytes:  # noqa: C901
     '''
     Encodes a value suitable for transmitting as payload to the device. The actual encoding depends on the `data_type`.
 
@@ -135,8 +127,7 @@ def decode_value(data_type: Literal[DataType.EVENT_TABLE], data: bytes) -> Tuple
     ...
 
 
-# pylint: disable=too-many-branches,too-many-return-statements
-def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, int, str,
+def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, int, str,  # noqa: C901
                                                             Tuple[datetime, Dict[datetime, int]],
                                                             Tuple[datetime, Dict[datetime, EventEntry]]]:
     '''
