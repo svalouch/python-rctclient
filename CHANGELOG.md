@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.0.5 - unreleased
+
 ## Release 0.0.4 - 2023-10-05
 
 ### Documentation
