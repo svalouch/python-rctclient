@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Documentation
 
 - Add page to document inverter bitfields and enumerations.
+- Add more fault codes and a warning that the added codes overflow the bitfield.
 
 ## Release 0.0.4 - 2023-10-05
 

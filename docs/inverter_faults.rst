@@ -149,4 +149,13 @@ Bit Description
 126 Island detected
 === =========================================================================================
 
-.. 127 is missing from list, possibly not implemented?
+Additionally, recent versions list three additional bits: Number 127 makes sense, but the last two (128+129) can not
+be represented by the bit fields, so this might be an error.
+
+=== ================================
+Bit Description
+=== ================================
+127 Neutral fault
+128 Battery calibration failed
+129 Power switch relay not confirmed
+=== ================================
