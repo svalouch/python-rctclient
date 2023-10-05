@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 ### Bugfixes
 
 - CLI: Implement support for `Click 8.1` caused by API changes related to custom completions (Issue #17, PR #18).
+- Make setuptools happy again by adhering to `PEP-508`.
 
 ### Dependency changes
 

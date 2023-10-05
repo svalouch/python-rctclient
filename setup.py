@@ -32,7 +32,7 @@ setup(
 
     extras_require={
         'cli': [
-            'click>=7.0<8.2',
+            'click >=7.0, <8.2',
         ],
         'tests': [
             'mypy',
@@ -42,12 +42,12 @@ setup(
             'pytest-pylint',
         ],
         'docs': [
-            'click>=7.0<8.2',
-            'Sphinx>=2.0',
+            'click >=7.0, <8.2',
+            'Sphinx >=2.0',
             'sphinx-autodoc-typehints',
             'sphinx-click',
             'sphinx-rtd-theme',
-            'recommonmark>=0.5.0',
+            'recommonmark >=0.5.0',
         ],
     },
     entry_points={
