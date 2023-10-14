@@ -13,6 +13,7 @@ import select
 import socket
 import struct
 import sys
+from _csv import Dialect
 from datetime import datetime, timedelta
 from tempfile import mkstemp
 from typing import Dict, Optional
@@ -42,6 +43,14 @@ def datetime_range(start: datetime, end: datetime, delta: relativedelta):
 
 be_quiet: bool = False
 
+
+class RFCDialect(Dialect):
+    delimiter = ';'
+    doublequote = True
+    lineterminator = '\r\n'
+    quotechar = '"'
+    escapechar = ''
+    quoting = csv.QUOTE_MINIMAL
 
 def cprint(text: str) -> None:
     '''
@@ -291,7 +300,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
                     iter_end = True
 
     if output is None:
-        output = f'data_{resolution}_{ts_start.isoformat("T")}.csv'
+        output = f'data_{resolution}_{ts_start.strftime("%Y%m%d_%H%M%S")}.csv'
 
     if output == '-':
         fd = sys.stdout
@@ -304,9 +313,10 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
         fd.write('#datatype dateTime,field,field,field,field,field,field,field,field,field,field,field,field,field,'
                  'field,field,field,field,field,field,field,field,field\n')
 
-    writer = csv.writer(fd)
-
     names = [oid.name.replace(name_prefix, '').replace('_log_ts', '') for oid in oids]
+
+    csv.register_dialect('rfc', RFCDialect)
+    writer = csv.writer(fd, dialect='rfc')
 
     if header_format == 'simple':
         writer.writerow(['timestamp'] + names)
@@ -317,7 +327,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
     if output != '-':
         fd.flush()
-        os.fsync(fd.fileno())
+        fd.close()
         try:
             os.rename(filepath, output)
         except OSError as exc:
