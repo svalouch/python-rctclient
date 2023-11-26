@@ -55,6 +55,7 @@ setup(
             'rctclient=rctclient.cli:cli [cli]',
         ],
     },
+    scripts=['tools/timeseries2csv.py'],
 
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
