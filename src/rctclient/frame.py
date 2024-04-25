@@ -11,6 +11,8 @@ from .exceptions import FrameCRCMismatch, InvalidCommand, FrameLengthExceeded
 from .types import Command, FrameType
 from .utils import CRC16
 
+#: Preamble before start token in responses
+START_PREAMBLE = b'\x00'
 #: Token that starts a frame
 START_TOKEN = b'+'
 #: Token that escapes the next value
@@ -225,7 +227,10 @@ class ReceiveFrame:
 
     :param ignore_crc_mismatch: If not set, no exception is raised when the CRC checksums do **not** match. Use
        ``crc_ok`` to figure out if they matched.
-    '''
+       
+    :param strict_start_match: If not set, a single 2b start token is used to match a frame. If set, the preamble 00 is
+       is expected before the start token to match a frame start.
+'''
     # frame complete yet?
     _complete: bool
     # did the crc match?
@@ -255,12 +260,14 @@ class ReceiveFrame:
     _address: int
 
     _ignore_crc_mismatch: bool
+    _strict_start_match: bool  
 
     def __init__(self, ignore_crc_mismatch: bool = False) -> None:
         self._log = logging.getLogger(__name__ + '.ReceiveFrame')
         self._complete = False
         self._crc_ok = False
         self._escaping = False
+        self._starting = False
         self._crc16 = 0
         self._frame_length = 0
         self._frame_type = FrameType._NONE
@@ -367,6 +374,24 @@ class ReceiveFrame:
         self._ignore_crc_mismatch = newval
 
     @property
+    def strict_start_match(self) -> bool:
+        '''
+        Returns whether strict start matching applies during frame consume.
+
+        .. versionadded:: Saxonwood
+        '''
+        return self._strict_start_match
+
+    @strict_start_match.setter
+    def strict_start_match(self, newval: bool) -> None:
+        '''
+        Changes whether strict start matching is enabled during frame consume.
+
+        .. versionadded:: Saxonwood
+        '''
+        self._strict_start_smatch = newval
+
+    @property
     def frame_length(self) -> int:
         '''
         Returns the length of the frame. This is ``0`` until the header containing the length field has been received.
@@ -399,11 +424,37 @@ class ReceiveFrame:
             # sync to start_token
             if len(self._buffer) == 0:
                 self._log.debug('      buffer empty')
-                if c == START_TOKEN:
-                    self._log.debug('      start token found')
-                    self._buffer += c
-                continue
+                # start token must be after preamble 00, as in inverter responses
+                # rare 00-2b-2b sequences can still occur => invalid cmd 43
+                if self._strict_start_match:
+                    if c == START_PREAMBLE:
+                        self._log.debug('      found preamble')
+                        self._starting = True
+                        continue
+                    if self._starting == True and c == START_TOKEN:
+                        # preamble followed by start token
+                        self._log.debug('      start token found')
+                        self._buffer += c
+                        self._starting = False
+                    else:
+                        # preamble was not followed by start token
+                        self._starting = False
+                    continue
 
+                ## accept any start token except after escape token
+                else:
+                    if c == ESCAPE_TOKEN:
+                        self._log.debug('      setting escape')
+                        # set the escape mode and ignore the byte at hand.
+                        self._escaping = True
+                        continue
+                    if c == START_TOKEN and self._escaping == True:
+                        self._log.debug('      resetting escape')
+                        self.escaping = False
+                    elif c == START_TOKEN:
+                        self._log.debug('      start token found')
+                        self._buffer += c
+                    continue
             if self._escaping:
                 self._log.debug('      resetting escape')
                 self._escaping = False
