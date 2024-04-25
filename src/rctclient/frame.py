@@ -262,7 +262,7 @@ class ReceiveFrame:
     _ignore_crc_mismatch: bool
     _strict_start_match: bool  
 
-    def __init__(self, ignore_crc_mismatch: bool = False) -> None:
+    def __init__(self, ignore_crc_mismatch: bool = False, strict_start_match: bool = False) -> None:
         self._log = logging.getLogger(__name__ + '.ReceiveFrame')
         self._complete = False
         self._crc_ok = False
