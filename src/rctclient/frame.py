@@ -262,7 +262,7 @@ class ReceiveFrame:
     _ignore_crc_mismatch: bool
     _strict_start_match: bool  
 
-    def __init__(self, ignore_crc_mismatch: bool = False) -> None:
+    def __init__(self, ignore_crc_mismatch: bool = False, strict_start_match: bool = False) -> None:
         self._log = logging.getLogger(__name__ + '.ReceiveFrame')
         self._complete = False
         self._crc_ok = False
@@ -274,6 +274,7 @@ class ReceiveFrame:
         self._command = Command._NONE
         self._buffer = bytearray()
         self._ignore_crc_mismatch = ignore_crc_mismatch
+        self._strict_start_match = strict_start_match
         self._consumed_bytes = 0
 
         # set initially to the minimum length a frame header (i.e. everything before the data) can be.
