@@ -194,7 +194,7 @@ multiple values have the additional values as a list without individual descript
 +-----------------------------------------------+-----------------------------------+
 | cos φ                                         | ``inv_struct.cosinus_phi``        |
 +-----------------------------------------------+-----------------------------------+
-| Total insulation resistance [Ohm]             | ``is_struct.Riso``                |
+| Total insulation resistance [Ohm]             | ``iso_struct.Riso``               |
 +-----------------------------------------------+-----------------------------------+
 | start power [w]                               | ``prim_sm.Uzk_pump_grad[0]``      |
 +-----------------------------------------------+-----------------------------------+
