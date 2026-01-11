@@ -1,11 +1,11 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020-2021, Stefan Valouch (svalouch)
+# Copyright 2020-2026, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
 from datetime import datetime
-from typing import overload, Dict, Tuple, Union
+from typing import Dict, Tuple, Union, overload
 
 try:
     # Python 3.8+
@@ -33,7 +33,7 @@ def CRC16(data: Union[bytes, bytearray]) -> int:
 
     for byte in buffer:
         crcsum ^= byte << 8
-        for _bit in range(8):
+        for _ in range(8):
             crcsum <<= 1
             if crcsum & 0x7FFF0000:
                 # ~~ overflow in bit 16
@@ -188,7 +188,7 @@ def _decode_timeseries(data: bytes) -> Tuple[datetime, Dict[datetime, int]]:
     Helper function to decode the timeseries type.
     '''
     timestamp = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
-    tsval: Dict[datetime, int] = dict()
+    tsval: Dict[datetime, int] = {}
     assert len(data) % 4 == 0, 'Data should be divisible by 4'
     assert int(len(data) / 4 % 2) == 1, 'Data should be an even number of 4-byte pairs plus the starting timestamp'
     for pair in range(0, int(len(data) / 4 - 1), 2):
@@ -203,7 +203,7 @@ def _decode_event_table(data: bytes) -> Tuple[datetime, Dict[datetime, EventEntr
     Helper function to decode the event table type.
     '''
     timestamp = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0])
-    tabval: Dict[datetime, EventEntry] = dict()
+    tabval: Dict[datetime, EventEntry] = {}
     assert len(data) % 4 == 0
     assert (len(data) - 4) % 20 == 0
     for pair in range(0, int(len(data) / 4 - 1), 5):

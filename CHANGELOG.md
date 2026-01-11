@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## Release 0.0.5 - unreleased
 
+### Breaking changes
+
+- Raise minimum Python version to `3.11` (Debian Bookworm and newer).
+- Switch to `pyproject.toml` with the standard `setuptools` build-backend.
+- Switch to using [uv](https://docs.astral.sh/uv/) for managing the code.
+
 ### Documentation
 
 - Add page to document inverter bitfields and enumerations.

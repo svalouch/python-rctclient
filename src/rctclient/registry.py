@@ -1,9 +1,7 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020-2021, Stefan Valouch (svalouch)
+# Copyright 2020-2026, Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
-
-# pylint: disable=line-too-long
 
 '''
 Dataset defining the values and names to conveniently use the system.
@@ -12,7 +10,7 @@ Dataset defining the values and names to conveniently use the system.
 from typing import Any, Dict, List, Optional
 
 from .exceptions import RctClientException
-from .types import ObjectGroup, DataType
+from .types import DataType, ObjectGroup
 
 
 class ObjectInfo:
@@ -136,7 +134,7 @@ class Registry:
     _name_max_len: int
 
     def __init__(self, data: List[ObjectInfo]) -> None:
-        self._ids = dict()
+        self._ids = {}
         self._name_max_len = 0
         for elem in data:
             self._name_max_len = max(self._name_max_len, len(elem.name))
@@ -170,7 +168,7 @@ class Registry:
         :returns: The id.
         :raises KeyError: If no id with that `name` is in the registry.
         '''
-        for id, elem in self._ids.items():
+        for elem in self._ids.values():
             if elem.name == name:
                 return elem
         raise KeyError('Element not found')

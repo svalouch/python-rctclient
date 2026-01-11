@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rctclient"
+version = "0.0.5"
+description = "Implementation of the RCT Power communication protocol"
+authors = [
+    {name = "Stefan Valouch", email = "svalouch@valouch.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+license = "GPL-3.0-only"
+dependencies = []
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+[project.urls]
+Documentation = "https://rctclient.readthedocs.io/"
+Repository = "https://github.com/svalouch/python-rctclient/"
+Tracker = "https://github.com/svalouch/python-rctclient/issues"
+
+[project.optional-dependencies]
+cli = ["click"]
+
+[project.scripts]
+# Note: This requires "click"
+rctclient = "rctclient.cli:cli"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "ruff>=0.12.10",
+]
+
+[tool.mypy]
+strict = true
+plugins = ["pydantic.mypy", "sqlmypy"]
+
+[tool.ruff]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+line-length = 120
+
+[tool.ruff.lint.per-file-ignores]
+"src/rctclient/registry.py" = ["E241", "E501"]

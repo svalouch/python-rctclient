@@ -1,13 +1,13 @@
 
 # Copyright 2020, Peter Oberhofer (pob90)
-# Copyright 2020,2021 Stefan Valouch (svalouch)
+# Copyright 2020,2026 Stefan Valouch (svalouch)
 # SPDX-License-Identifier: GPL-3.0-only
 
 import logging
 import struct
 from typing import Union
 
-from .exceptions import FrameCRCMismatch, InvalidCommand, FrameLengthExceeded
+from .exceptions import FrameCRCMismatch, FrameLengthExceeded, InvalidCommand
 from .types import Command, FrameType
 from .utils import CRC16
 
@@ -86,7 +86,7 @@ def make_frame(command: Command, id: int, payload: bytes = b'', address: int = 0
 
         data += byte
 
-    return data
+    return bytes(data)
 
 
 class SendFrame:
@@ -472,7 +472,7 @@ class ReceiveFrame:
                 self._crc_ok = self._crc16 == calc_crc16
                 self._log.debug('      crc: %04x calculated: %04x match: %s', self._crc16, calc_crc16, self._crc_ok)
 
-                self._data = self._buffer[self._frame_header_length:-FRAME_LENGTH_CRC16]
+                self._data = bytes(self._buffer[self._frame_header_length:-FRAME_LENGTH_CRC16])
 
                 if not self._crc_ok and not self._ignore_crc_mismatch:
                     raise FrameCRCMismatch('CRC mismatch', self._crc16, calc_crc16, i)
