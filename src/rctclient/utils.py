@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 
 import struct
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Dict, Tuple, Union, overload
 
 try:
@@ -186,12 +186,12 @@ def _decode_timeseries(data: bytes) -> Tuple[datetime, Dict[datetime, int]]:
     '''
     Helper function to decode the timeseries type.
     '''
-    timestamp = datetime.utcfromtimestamp(struct.unpack('>I', data[0:4])[0])
+    timestamp = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0], UTC)
     tsval: Dict[datetime, int] = dict()
     assert len(data) % 4 == 0, 'Data should be divisible by 4'
     assert int(len(data) / 4 % 2) == 1, 'Data should be an even number of 4-byte pairs plus the starting timestamp'
     for pair in range(0, int(len(data) / 4 - 1), 2):
-        pair_ts = datetime.utcfromtimestamp(struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0])
+        pair_ts = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0], UTC)
         pair_val = struct.unpack('>f', data[4 + pair * 4 + 4:4 + pair * 4 + 4 + 4])[0]
         tsval[pair_ts] = pair_val
     return timestamp, tsval
@@ -201,7 +201,7 @@ def _decode_event_table(data: bytes) -> Tuple[datetime, Dict[datetime, EventEntr
     '''
     Helper function to decode the event table type.
     '''
-    timestamp = datetime.utcfromtimestamp(struct.unpack('>I', data[0:4])[0])
+    timestamp = datetime.fromtimestamp(struct.unpack('>I', data[0:4])[0], UTC)
     tabval: Dict[datetime, EventEntry] = dict()
     assert len(data) % 4 == 0
     assert (len(data) - 4) % 20 == 0
@@ -209,7 +209,7 @@ def _decode_event_table(data: bytes) -> Tuple[datetime, Dict[datetime, EventEntr
         # this is most likely a single byte of information, but this is not sure yet
         # entry_type = bytes([struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]]).decode('ascii')
         entry_type = struct.unpack('>I', data[4 + pair * 4:4 + pair * 4 + 4])[0]
-        timestamp = datetime.utcfromtimestamp(struct.unpack('>I', data[4 + pair * 4 + 4:4 + pair * 4 + 8])[0])
+        timestamp = datetime.fromtimestamp(struct.unpack('>I', data[4 + pair * 4 + 4:4 + pair * 4 + 8])[0], UTC)
         element2 = struct.unpack('>I', data[4 + pair * 4 + 8:4 + pair * 4 + 12])[0]
         element3 = struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0]
         element4 = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
@@ -224,8 +224,8 @@ def _decode_event_table(data: bytes) -> Tuple[datetime, Dict[datetime, EventEntr
         #                                    value_old=value_old, value_new=value_new)
         # the rest is assumed to be range-based events
         # else:
-        #     timestamp_end = datetime.utcfromtimestamp(
-        #         struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0])
+        #     timestamp_end = datetime.fromtimestamp(
+        #         struct.unpack('>I', data[4 + pair * 4 + 12:4 + pair * 4 + 16])[0], UTC)
         #     object_id = struct.unpack('>I', data[4 + pair * 4 + 16:4 + pair * 4 + 20])[0]
         #     tabval[timestamp] = EventEntry(timestamp=timestamp, object_id=object_id, entry_type=entry_type,
         #                                    timestamp_end=timestamp_end)

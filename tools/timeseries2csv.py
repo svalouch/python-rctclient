@@ -13,12 +13,12 @@ import select
 import socket
 import struct
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from tempfile import mkstemp
 from typing import Dict, Optional
+from zoneinfo import ZoneInfo
 
 import click
-import pytz
 from dateutil.relativedelta import relativedelta
 
 from rctclient.exceptions import FrameCRCMismatch, FrameLengthExceeded, InvalidCommand
@@ -28,8 +28,6 @@ from rctclient.types import Command, DataType
 from rctclient.utils import decode_value, encode_value
 
 # pylint: disable=too-many-arguments,too-many-locals
-
-gmt = pytz.timezone('GMT')
 
 def datetime_range(start: datetime, end: datetime, delta: relativedelta):
     '''
@@ -114,7 +112,11 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
         cprint('Error: --count must be a positive integer')
         sys.exit(1)
 
-    timezone = pytz.timezone(time_zone)
+    try:
+        timezone = ZoneInfo(time_zone)
+    except:  # noqa: E722
+        cprint('Error: --time-zone is not valid')
+        sys.exit(1)
     now = datetime.now(timezone)
 
     if resolution == 'minutes':
@@ -211,7 +213,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
             cprint(f'\ttimestamp: {highest_ts}')
             # rct power device seems to treat local time at GMT when converting from/to timestamps
             sock.send(make_frame(command=Command.WRITE, id=oid.object_id,
-                                 payload=encode_value(DataType.INT32, int(highest_ts.replace(tzinfo=gmt).timestamp()))))
+                                 payload=encode_value(DataType.INT32, int(highest_ts.replace(tzinfo=UTC).timestamp()))))
 
             rframe = ReceiveFrame()
             while True:
@@ -264,7 +266,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
             for t_ts, t_val in table.items():
 
                 # rct power device seems to treat local time at GMT when converting from/to timestamps
-                t_ts = timezone.localize(t_ts)
+                t_ts = t_ts.replace(tzinfo=timezone)
 
                 # set the "highest" point in time to know what to request next when the day is not complete
                 if t_ts < highest_ts:
