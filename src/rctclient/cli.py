@@ -11,7 +11,7 @@ import logging
 import select
 import socket
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List, Optional
 
 try:
@@ -174,7 +174,7 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     is_ev = oinfo.response_data_type == DataType.EVENT_TABLE
     if is_ts or is_ev:
         sock.send(make_frame(command=Command.WRITE, id=oinfo.object_id,
-                             payload=encode_value(DataType.INT32, int(datetime.now().timestamp()))))
+                             payload=encode_value(DataType.INT32, int(datetime.now(UTC).timestamp()))))
     else:
         sock.send(make_frame(command=Command.READ, id=oinfo.object_id))
     try:

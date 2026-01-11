@@ -13,22 +13,21 @@ import select
 import socket
 import struct
 import sys
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from tempfile import mkstemp
 from typing import Dict, Optional
+from zoneinfo import ZoneInfo
 
 import click
-import pytz
 from dateutil.relativedelta import relativedelta
 
-from rctclient.exceptions import FrameCRCMismatch
+from rctclient.exceptions import FrameCRCMismatch, FrameLengthExceeded, InvalidCommand
 from rctclient.frame import ReceiveFrame, make_frame
 from rctclient.registry import REGISTRY as R
 from rctclient.types import Command, DataType
 from rctclient.utils import decode_value, encode_value
 
 # pylint: disable=too-many-arguments,too-many-locals
-
 
 def datetime_range(start: datetime, end: datetime, delta: relativedelta):
     '''
@@ -113,8 +112,12 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
         cprint('Error: --count must be a positive integer')
         sys.exit(1)
 
-    timezone = pytz.timezone(time_zone)
-    now = datetime.now()
+    try:
+        timezone = ZoneInfo(time_zone)
+    except:  # noqa: E722
+        cprint('Error: --time-zone is not valid')
+        sys.exit(1)
+    now = datetime.now(timezone)
 
     if resolution == 'minutes':
         oid_names = ['logger.minutes_ubat_log_ts', 'logger.minutes_ul3_log_ts', 'logger.minutes_ub_log_ts',
@@ -208,8 +211,9 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
         while highest_ts > ts_start and not iter_end:
             cprint(f'\ttimestamp: {highest_ts}')
+            # rct power device seems to treat local time at GMT when converting from/to timestamps
             sock.send(make_frame(command=Command.WRITE, id=oid.object_id,
-                                 payload=encode_value(DataType.INT32, int(highest_ts.timestamp()))))
+                                 payload=encode_value(DataType.INT32, int(highest_ts.replace(tzinfo=UTC).timestamp()))))
 
             rframe = ReceiveFrame()
             while True:
@@ -227,6 +231,12 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
                         except FrameCRCMismatch:
                             cprint('\tCRC error')
                             break
+                        except FrameLengthExceeded:
+                            cprint('\tFrame length exceeded')
+                            break
+                        except InvalidCommand:
+                            cprint('\tInvalid command')
+                            break
                         if rframe.complete():
                             break
                     else:
@@ -236,7 +246,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
                     cprint('\tTimeout, retrying')
                     break
 
-            if not rframe.complete():
+            if not rframe.complete() or not rframe.crc_ok:
                 cprint('\tIncomplete frame, retrying')
                 continue
 
@@ -255,6 +265,9 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
             # work with the data
             for t_ts, t_val in table.items():
 
+                # rct power device seems to treat local time at GMT when converting from/to timestamps
+                t_ts = t_ts.replace(tzinfo=timezone)
+
                 # set the "highest" point in time to know what to request next when the day is not complete
                 if t_ts < highest_ts:
                     highest_ts = t_ts
@@ -270,7 +283,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
                         # correct up to one full minute
                         nt_ts = t_ts.replace(second=0)
                         if nt_ts not in datetable:
-                            nt_ts = t_ts.replace(second=0, minute=t_ts.minute + 1)
+                            nt_ts = t_ts.replace(second=0, minute=(t_ts.minute + 1) % 60, hour=t_ts.hour + (t_ts.minute + 1) // 60)
                             if nt_ts not in datetable:
                                 cprint(f'\t{t_ts} does not fit raster, skipped')
                                 continue
@@ -313,7 +326,7 @@ def timeseries2csv(host: str, port: int, output: Optional[str], header_format: b
 
     for bts, btval in datetable.items():
         if btval:  # there may be holes in the data
-            writer.writerow([timezone.localize(bts).isoformat('T')] + [str(btval[name]) for name in names])
+            writer.writerow([bts.isoformat('T')] + [str(btval[name]) for name in names])
 
     if output != '-':
         fd.flush()
