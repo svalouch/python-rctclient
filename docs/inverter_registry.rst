@@ -54,6 +54,16 @@ battery
    :widths: 10, 5, 5, 5, 15, 40
    :file: objectgroup_battery.csv
 
+battery_placeholder
+===================
+
+This appears to be used for a second battery tower.
+
+.. csv-table::
+   :header-rows: 1
+   :widths: 10, 5, 5, 5, 15, 40
+   :file: objectgroup_battery_placeholder.csv
+
 buf_v_control
 =============
 
@@ -240,6 +250,14 @@ others
    :header-rows: 1
    :widths: 10, 5, 5, 5, 15, 40
    :file: objectgroup_others.csv
+
+partition
+=========
+
+.. csv-table::
+   :header-rows: 1
+   :widths: 10, 5, 5, 5, 15, 40
+   :file: objectgroup_partition.csv
 
 power_mng
 =========
