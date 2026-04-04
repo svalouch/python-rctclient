@@ -8,6 +8,7 @@ Command line interface implementation.
 # SPDX-License-Identifier: GPL-3.0-only
 
 import logging
+import json
 import select
 import socket
 import sys
@@ -97,6 +98,44 @@ def receive_frame(sock: socket.socket, timeout: int = 2) -> ReceiveFrame:
                         log.debug('Leftover bytes: %s', buf[i:].hex())
                     return frame
     raise TimeoutError
+
+
+def _format_cli_value(data_type: DataType, value: object) -> str:
+    '''
+    Formats decoded values for CLI output.
+    '''
+    if data_type == DataType.BATTERY_MODULE_STATUS:
+        # Compact JSON representation keyed by cell id.
+        return json.dumps(
+            {
+                str(cell_id): {
+                    'temperature_c': cell.temperature_c,
+                    'voltage_v': cell.voltage_v,
+                }
+                for cell_id, cell in sorted(value.cells.items())
+            },
+            separators=(',', ':'),
+        )
+    if data_type == DataType.BATTERY_MODULE_STATISTICS:
+        def _encode_extreme(extreme: object, unit: str) -> dict[str, object]:
+            timestamp = extreme.timestamp.isoformat() if extreme.timestamp is not None else None
+            return {
+                'cell': extreme.cell,
+                'timestamp': timestamp,
+                'value': extreme.value,
+                'unit': unit,
+            }
+
+        return json.dumps(
+            {
+                'u_min': _encode_extreme(value.u_min, 'V'),
+                'u_max': _encode_extreme(value.u_max, 'V'),
+                't_min': _encode_extreme(value.t_min, 'degC'),
+                't_max': _encode_extreme(value.t_max, 'degC'),
+            },
+            separators=(',', ':'),
+        )
+    return str(value)
 
 
 @cli.command('read-value')
@@ -216,10 +255,11 @@ def read_value(ctx, port: int, host: str, id: Optional[str], name: Optional[str]
     if verbose:
         description = oinfo.description if oinfo.description is not None else ''
         unit = oinfo.unit if oinfo.unit is not None else ''
+        value_out = _format_cli_value(oinfo.response_data_type, value)
         click.echo(f'#{oinfo.index:3} 0x{oinfo.object_id:8X} {oinfo.name:{R.name_max_length()}} '
-                   f'{description:75} {value} {unit}')
+                   f'{description:75} {value_out} {unit}')
     else:
-        click.echo(f'{value}')
+        click.echo(_format_cli_value(oinfo.response_data_type, value))
 
     try:
         sock.close()

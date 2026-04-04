@@ -14,7 +14,7 @@ except ImportError:
     # Python < 3.8
     from typing_extensions import Literal
 
-from .types import DataType, EventEntry
+from .types import BatteryModuleCellStatus, BatteryModuleHistoryEntry, BatteryModuleStatistics, BatteryModuleStatus, DataType, EventEntry
 
 # pylint: disable=invalid-name
 def CRC16(data: Union[bytes, bytearray]) -> int:
@@ -134,8 +134,20 @@ def decode_value(data_type: Literal[DataType.EVENT_TABLE], data: bytes) -> Tuple
     ...
 
 
+@overload
+def decode_value(data_type: Literal[DataType.BATTERY_MODULE_STATUS], data: bytes) -> BatteryModuleStatus:
+    ...
+
+
+@overload
+def decode_value(data_type: Literal[DataType.BATTERY_MODULE_STATISTICS], data: bytes) -> BatteryModuleStatistics:
+    ...
+
+
 # pylint: disable=too-many-branches,too-many-return-statements
 def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, int, str,
+                                                            BatteryModuleStatistics,
+                                                            BatteryModuleStatus,
                                                             Tuple[datetime, Dict[datetime, int]],
                                                             Tuple[datetime, Dict[datetime, EventEntry]]]:
     '''
@@ -179,7 +191,56 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         return _decode_timeseries(data)
     if data_type == DataType.EVENT_TABLE:
         return _decode_event_table(data)
+    if data_type == DataType.BATTERY_MODULE_STATUS:
+        return _decode_battery_module_status(data)
+    if data_type == DataType.BATTERY_MODULE_STATISTICS:
+        return _decode_battery_module_statistics(data)
     raise KeyError(f'Undefined or unknown type {data_type}')
+
+
+def _decode_battery_module_status(data: bytes) -> BatteryModuleStatus:
+    '''
+    Helper function to decode the battery module status payload.
+    '''
+    cells_per_module = 24
+    cell_record_size = 4
+    expected_len = cells_per_module * cell_record_size
+
+    if len(data) != expected_len:
+        raise ValueError(f'Battery module status payload must be {expected_len} bytes, got {len(data)}')
+
+    cells: dict[int, BatteryModuleCellStatus] = {}
+    for cell_id, offset in enumerate(range(0, len(data), cell_record_size)):
+        temperature_c = data[offset]
+        voltage_mv = data[offset + 1] | (data[offset + 2] << 8)
+        status = data[offset + 3]
+        cells[cell_id] = BatteryModuleCellStatus(temperature_c=temperature_c, voltage_mv=voltage_mv, status=status)
+
+    return BatteryModuleStatus(cells=cells)
+
+
+def _decode_battery_module_statistics(data: bytes) -> BatteryModuleStatistics:
+    '''
+    Helper function to decode the battery module statistics payload.
+    '''
+    expected_len = 48
+    if len(data) != expected_len:
+        raise ValueError(f'Battery module statistics payload must be {expected_len} bytes, got {len(data)}')
+
+    values = [struct.unpack('<I', data[idx:idx + 4])[0] for idx in range(0, expected_len, 4)]
+    floats = [struct.unpack('<f', data[idx:idx + 4])[0] for idx in range(0, expected_len, 4)]
+
+    def _ts(value: int) -> datetime | None:
+        if value == 0:
+            return None
+        return datetime.fromtimestamp(value, UTC)
+
+    return BatteryModuleStatistics(
+        u_min=BatteryModuleHistoryEntry(cell=values[0], timestamp=_ts(values[1]), value=floats[2]),
+        u_max=BatteryModuleHistoryEntry(cell=values[3], timestamp=_ts(values[4]), value=floats[5]),
+        t_min=BatteryModuleHistoryEntry(cell=values[6], timestamp=_ts(values[7]), value=floats[8]),
+        t_max=BatteryModuleHistoryEntry(cell=values[9], timestamp=_ts(values[10]), value=floats[11]),
+    )
 
 
 def _decode_timeseries(data: bytes) -> Tuple[datetime, Dict[datetime, int]]:

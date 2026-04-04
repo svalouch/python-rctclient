@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Raise minimum Python version to `3.11` (Debian Bookworm and newer).
 - Switch to `pyproject.toml` with the standard `setuptools` build-backend.
 - Switch to using [uv](https://docs.astral.sh/uv/) for managing the code.
+- Add decoding for battery cell status and battery module statistics
 
 ### Documentation
 
