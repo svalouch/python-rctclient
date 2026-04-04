@@ -9,9 +9,10 @@ Type declarations.
 
 # pylint: disable=too-many-arguments,too-few-public-methods
 
+from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum
-from typing import Optional
+from typing import Iterator, Optional
 
 
 class Command(IntEnum):
@@ -188,6 +189,72 @@ class DataType(IntEnum):
     #: Non-native: Event table entries consisting of a tuple of a timestamp for the record (usually the day) and a dict
     #: mapping values to timestamps. Can not be used for encoding.
     EVENT_TABLE = 21
+    #: Non-native: Battery module status data for 24 cells. Can not be used for encoding.
+    BATTERY_MODULE_STATUS = 22
+    #: Non-native: Battery module min/max statistics with timestamps and cell indexes.
+    BATTERY_MODULE_STATISTICS = 23
+
+
+@dataclass(frozen=True)
+class BatteryModuleCellStatus:
+    '''
+    Decoded status of a single battery cell within a module.
+
+    The raw wire format is 4 bytes per cell: one byte temperature, two bytes little-endian voltage in millivolts and
+    one trailing status or reserved byte.
+    '''
+
+    temperature_c: int
+    voltage_mv: int
+    status: int
+
+    @property
+    def voltage_v(self) -> float:
+        '''
+        Returns the cell voltage in volts.
+        '''
+        return self.voltage_mv / 1000.0
+
+
+@dataclass(frozen=True)
+class BatteryModuleStatus:
+    '''
+    Decoded status payload for a battery module containing 24 cells.
+    '''
+
+    cells: dict[int, BatteryModuleCellStatus]
+
+    def __iter__(self) -> Iterator[BatteryModuleCellStatus]:
+        return iter(self.cells.values())
+
+    def __len__(self) -> int:
+        return len(self.cells)
+
+    def __getitem__(self, cell_id: int) -> BatteryModuleCellStatus:
+        return self.cells[cell_id]
+
+
+@dataclass(frozen=True)
+class BatteryModuleHistoryEntry:
+    '''
+    A single min/max extreme with cell number, timestamp and value.
+    '''
+
+    cell: int
+    timestamp: Optional[datetime]
+    value: float
+
+
+@dataclass(frozen=True)
+class BatteryModuleStatistics:
+    '''
+    Historic min/max statistics for one battery module.
+    '''
+
+    u_min: BatteryModuleHistoryEntry
+    u_max: BatteryModuleHistoryEntry
+    t_min: BatteryModuleHistoryEntry
+    t_max: BatteryModuleHistoryEntry
 
 
 class EventEntry:
