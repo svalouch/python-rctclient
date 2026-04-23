@@ -36,6 +36,7 @@ cli = ["click"]
 [project.scripts]
 # Note: This requires "click"
 rctclient = "rctclient.cli:cli"
+timeseries2csv = "rctclient.timeseries2csv:timeseries2csv"
 
 [dependency-groups]
 dev = [
