@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## Release 0.0.6 - Unreleased
+
+
 ## Release 0.0.5 - 2026-04-24
 
 ### Breaking changes

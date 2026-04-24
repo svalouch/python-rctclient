@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rctclient"
-version = "0.0.5"
+version = "0.0.6"
 description = "Implementation of the RCT Power communication protocol"
 authors = [
     {name = "Stefan Valouch", email = "svalouch@valouch.com"}

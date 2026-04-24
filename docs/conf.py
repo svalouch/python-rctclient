@@ -26,7 +26,7 @@ copyright = '2020-2021, Peter Oberhofer, 2020-2026 Stefan Valouch'
 author = 'Stefan Valouch'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.5'
+release = '0.0.6'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
