@@ -135,6 +135,16 @@ def _format_cli_value(data_type: DataType, value: object) -> str:
             },
             separators=(',', ':'),
         )
+    if data_type == DataType.BATTERY_MODULE_RESISTANCE:
+        return json.dumps(
+            {
+                str(cell_id): {
+                    'resistance_mohm': cell.resistance_mohm,
+                }
+                for cell_id, cell in sorted(value.cells.items())
+            },
+            separators=(',', ':'),
+        )
     return str(value)
 
 

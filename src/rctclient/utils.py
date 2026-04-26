@@ -14,7 +14,7 @@ except ImportError:
     # Python < 3.8
     from typing_extensions import Literal
 
-from .types import BatteryModuleCellStatus, BatteryModuleHistoryEntry, BatteryModuleStatistics, BatteryModuleStatus, DataType, EventEntry
+from .types import BatteryModuleCellResistance, BatteryModuleCellStatus, BatteryModuleHistoryEntry, BatteryModuleResistance, BatteryModuleStatistics, BatteryModuleStatus, DataType, EventEntry
 
 # pylint: disable=invalid-name
 def CRC16(data: Union[bytes, bytearray]) -> int:
@@ -144,10 +144,16 @@ def decode_value(data_type: Literal[DataType.BATTERY_MODULE_STATISTICS], data: b
     ...
 
 
+@overload
+def decode_value(data_type: Literal[DataType.BATTERY_MODULE_RESISTANCE], data: bytes) -> BatteryModuleResistance:
+    ...
+
+
 # pylint: disable=too-many-branches,too-many-return-statements
 def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, int, str,
                                                             BatteryModuleStatistics,
                                                             BatteryModuleStatus,
+                                                            BatteryModuleResistance,
                                                             Tuple[datetime, Dict[datetime, int]],
                                                             Tuple[datetime, Dict[datetime, EventEntry]]]:
     '''
@@ -195,6 +201,8 @@ def decode_value(data_type: DataType, data: bytes) -> Union[bool, bytes, float, 
         return _decode_battery_module_status(data)
     if data_type == DataType.BATTERY_MODULE_STATISTICS:
         return _decode_battery_module_statistics(data)
+    if data_type == DataType.BATTERY_MODULE_RESISTANCE:
+        return _decode_battery_module_resistance(data)
     raise KeyError(f'Undefined or unknown type {data_type}')
 
 
@@ -241,6 +249,30 @@ def _decode_battery_module_statistics(data: bytes) -> BatteryModuleStatistics:
         t_min=BatteryModuleHistoryEntry(cell=values[6], timestamp=_ts(values[7]), value=floats[8]),
         t_max=BatteryModuleHistoryEntry(cell=values[9], timestamp=_ts(values[10]), value=floats[11]),
     )
+
+
+def _decode_battery_module_resistance(data: bytes) -> BatteryModuleResistance:
+    '''
+    Helper function to decode the battery module cell resistance payload.
+
+    The wire format uses 24 records of 4 bytes each.  The first two bytes of each record form a
+    big-endian uint16 fixed-point value in units of 1/256 mOhm (integer mOhm in byte 0, fractional
+    1/256 mOhm in byte 1).  Bytes 2 and 3 are always zero (padding).
+    '''
+    cells_per_module = 24
+    cell_record_size = 4
+    expected_len = cells_per_module * cell_record_size
+
+    if len(data) != expected_len:
+        raise ValueError(f'Battery module resistance payload must be {expected_len} bytes, got {len(data)}')
+
+    cells: dict[int, BatteryModuleCellResistance] = {}
+    for cell_id, offset in enumerate(range(0, len(data), cell_record_size)):
+        raw_value = struct.unpack('>H', data[offset:offset + 2])[0]
+        resistance_mohm = raw_value / 256.0
+        cells[cell_id] = BatteryModuleCellResistance(raw_value=raw_value, resistance_mohm=resistance_mohm)
+
+    return BatteryModuleResistance(cells=cells)
 
 
 def _decode_timeseries(data: bytes) -> Tuple[datetime, Dict[datetime, int]]:
