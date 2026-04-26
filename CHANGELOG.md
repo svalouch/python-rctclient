@@ -2,8 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
-## Release 0.0.6 - Unreleased
+## Release 0.0.6 - 2026-04-27
 
+### Features
+
+- Add decoding for battery cell resistance data (reverse-engineering by @SaxonWood, implementation by @sfudeus)
 
 ## Release 0.0.5 - 2026-04-24
 
@@ -12,6 +15,9 @@ All notable changes to this project will be documented in this file.
 - Raise minimum Python version to `3.11` (Debian Bookworm and newer).
 - Switch to `pyproject.toml` with the standard `setuptools` build-backend.
 - Switch to using [uv](https://docs.astral.sh/uv/) for managing the code.
+
+### Features
+
 - Add decoding for battery cell status and battery module statistics (reverse-engineering by @SaxonWood, implementation by @sfudeus)
 
 ### Documentation
