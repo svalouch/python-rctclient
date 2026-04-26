@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 from rctclient.registry import REGISTRY as R
-from rctclient.types import BatteryModuleStatistics, BatteryModuleStatus, DataType
+from rctclient.types import BatteryModuleResistance, BatteryModuleStatistics, BatteryModuleStatus, DataType
 from rctclient.utils import decode_value
 
 # pylint: disable=invalid-name,no-self-use
@@ -118,6 +118,43 @@ class TestDecodeValue:
         with pytest.raises(ValueError):
             decode_value(data_type=DataType.BATTERY_MODULE_STATISTICS, data=b'\x00' * 4)
 
+    def test_BATTERY_MODULE_RESISTANCE_happy(self) -> None:
+        '''
+        Tests decoding of the battery module resistance payload.
+        '''
+        # payload from battery.cells_resist[0] with known correct values 1.3-2.4 mOhm
+        data = bytes.fromhex(
+            '01 fb 00 00 01 52 00 00 01 fb 00 00 01 fb 00 00 '
+            '01 8a 00 00 01 fb 00 00 01 8a 00 00 01 8a 00 00 '
+            '01 8a 00 00 01 fb 00 00 01 8a 00 00 01 c2 00 00 '
+            '01 c2 00 00 01 52 00 00 02 6b 00 00 02 6b 00 00 '
+            '01 8a 00 00 01 fb 00 00 01 fb 00 00 01 8a 00 00 '
+            '01 c2 00 00 01 c2 00 00 01 fb 00 00 01 c2 00 00'
+        )
+
+        result = decode_value(data_type=DataType.BATTERY_MODULE_RESISTANCE, data=data)
+
+        assert isinstance(result, BatteryModuleResistance)
+        assert isinstance(result.cells, dict)
+        assert set(result.cells.keys()) == set(range(24))
+        assert len(result) == 24
+        # cell 1: 0x0152 = 338 → 338/256 = 1.3203 mOhm
+        assert result[1].raw_value == 0x0152
+        assert result[1].resistance_mohm == pytest.approx(1.3203, abs=1e-4)
+        # cell 0: 0x01FB = 507 → 507/256 = 1.9805 mOhm
+        assert result[0].raw_value == 0x01FB
+        assert result[0].resistance_mohm == pytest.approx(1.9805, abs=1e-4)
+        # cell 14: 0x026B = 619 → 619/256 = 2.4180 mOhm
+        assert result[14].raw_value == 0x026B
+        assert result[14].resistance_mohm == pytest.approx(2.4180, abs=1e-4)
+
+    def test_BATTERY_MODULE_RESISTANCE_invalid_length(self) -> None:
+        '''
+        Tests that invalid battery module resistance payload lengths are rejected.
+        '''
+        with pytest.raises(ValueError):
+            decode_value(data_type=DataType.BATTERY_MODULE_RESISTANCE, data=b'\x00' * 4)
+
     @pytest.mark.parametrize(
         'name',
         [
@@ -153,3 +190,21 @@ class TestDecodeValue:
         Tests that battery.cells_stat objects use the structured battery module statistics type.
         '''
         assert R.get_by_name(name).response_data_type == DataType.BATTERY_MODULE_STATISTICS
+
+    @pytest.mark.parametrize(
+        'name',
+        [
+            'battery.cells_resist[0]',
+            'battery.cells_resist[1]',
+            'battery.cells_resist[2]',
+            'battery.cells_resist[3]',
+            'battery.cells_resist[4]',
+            'battery.cells_resist[5]',
+            'battery.cells_resist[6]',
+        ],
+    )
+    def test_battery_cells_resist_registry_uses_battery_module_resistance(self, name: str) -> None:
+        '''
+        Tests that battery.cells_resist objects use the structured battery module resistance type.
+        '''
+        assert R.get_by_name(name).response_data_type == DataType.BATTERY_MODULE_RESISTANCE

@@ -193,6 +193,8 @@ class DataType(IntEnum):
     BATTERY_MODULE_STATUS = 22
     #: Non-native: Battery module min/max statistics with timestamps and cell indexes.
     BATTERY_MODULE_STATISTICS = 23
+    #: Non-native: Battery module cell resistances for 24 cells.
+    BATTERY_MODULE_RESISTANCE = 24
 
 
 @dataclass(frozen=True)
@@ -255,6 +257,41 @@ class BatteryModuleStatistics:
     u_max: BatteryModuleHistoryEntry
     t_min: BatteryModuleHistoryEntry
     t_max: BatteryModuleHistoryEntry
+
+
+@dataclass(frozen=True)
+class BatteryModuleCellResistance:
+    '''
+    Decoded internal resistance for a single battery cell.
+    '''
+
+    raw_value: int
+    resistance_mohm: float
+
+    @property
+    def resistance_ohm(self) -> float:
+        '''
+        Returns the cell resistance in ohms.
+        '''
+        return self.resistance_mohm / 1000.0
+
+
+@dataclass(frozen=True)
+class BatteryModuleResistance:
+    '''
+    Decoded resistance payload for a battery module containing 24 cells.
+    '''
+
+    cells: dict[int, BatteryModuleCellResistance]
+
+    def __iter__(self) -> Iterator[BatteryModuleCellResistance]:
+        return iter(self.cells.values())
+
+    def __len__(self) -> int:
+        return len(self.cells)
+
+    def __getitem__(self, cell_id: int) -> BatteryModuleCellResistance:
+        return self.cells[cell_id]
 
 
 class EventEntry:
